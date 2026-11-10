@@ -42,7 +42,7 @@ void main() {
   group('Supabase 설정', () {
     test('기본값은 소리노트 프로젝트(publishable 키)', () {
       expect(isSupabaseConfigured, isTrue);
-      expect(supabaseUrl, 'https://aexzuuzsdlnnklqklauw.supabase.co');
+      expect(supabaseUrl, 'https://tkbhtdkhipmsmfwfhhom.supabase.co');
       expect(supabasePublishableKey, startsWith('sb_publishable_'));
       expect(
         () =>

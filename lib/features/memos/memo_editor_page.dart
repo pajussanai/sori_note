@@ -233,6 +233,13 @@ class _MemoEditorPageState extends State<MemoEditorPage> {
     });
   }
 
+  /// 음성 입력이 안 될 때 글자 입력으로 바꾼다. 버튼을 눌러 포커스를 주므로
+  /// 휴대폰 브라우저에서도 키보드가 열린다.
+  void _typeInstead() {
+    _dictation.clearStatus();
+    _focus.requestFocus();
+  }
+
   // ------------------------------------------------------------- AI 다듬기
 
   Future<void> _polish() async {
@@ -345,6 +352,7 @@ class _MemoEditorPageState extends State<MemoEditorPage> {
                 dictation: _dictation,
                 onMic: _toggleMic,
                 onPolish: _polish,
+                onKeyboard: _typeInstead,
               ),
             ],
           ),
@@ -398,11 +406,15 @@ class _EditorBar extends StatelessWidget {
     required this.dictation,
     required this.onMic,
     required this.onPolish,
+    required this.onKeyboard,
   });
 
   final Dictation dictation;
   final VoidCallback onMic;
   final VoidCallback onPolish;
+
+  /// 받아쓰기가 실패했을 때 글자 입력으로 바꾼다.
+  final VoidCallback onKeyboard;
 
   @override
   Widget build(BuildContext context) {
@@ -452,6 +464,18 @@ class _EditorBar extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (dictation.statusIsError) ...[
+                            const SizedBox(width: 6),
+                            TextButton.icon(
+                              key: const Key('typeInstead'),
+                              onPressed: onKeyboard,
+                              icon: const Icon(
+                                Icons.keyboard_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('키보드로 입력'),
+                            ),
+                          ],
                         ],
                       ),
                     ),

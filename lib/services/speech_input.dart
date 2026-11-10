@@ -10,7 +10,17 @@ typedef SpeechTextCallback = void Function(
 });
 
 /// 음성 인식이 끝나거나 실패한 이유
-enum SpeechStopReason { done, noMatch, permissionDenied, unsupported, error }
+///
+/// [serviceBlocked]: 마이크와 별개로 기기의 음성 인식 서비스를 쓸 수 없음
+/// (iPhone Safari에서 '받아쓰기'가 꺼져 있을 때 등, Web Speech `service-not-allowed`)
+enum SpeechStopReason {
+  done,
+  noMatch,
+  permissionDenied,
+  serviceBlocked,
+  unsupported,
+  error,
+}
 
 /// 마이크로 말한 내용을 글자로 바꾼다(STT).
 abstract class SpeechInput {
@@ -37,9 +47,8 @@ class DeviceSpeechInput implements SpeechInput {
 
   /// 플랫폼 오류 코드를 앱의 이유로 바꾼다(Android, iOS, 웹 Web Speech API).
   static SpeechStopReason reasonFor(String code) {
-    if (code.contains('permission') ||
-        code == 'not-allowed' ||
-        code == 'service-not-allowed') {
+    if (code == 'service-not-allowed') return SpeechStopReason.serviceBlocked;
+    if (code.contains('permission') || code == 'not-allowed') {
       return SpeechStopReason.permissionDenied;
     }
     if (code == 'error_no_match' ||
@@ -85,7 +94,10 @@ class DeviceSpeechInput implements SpeechInput {
       return SpeechStopReason.unsupported;
     }
     if (!_ready) {
-      // initialize가 false면 권한이 거부됐거나 기기가 지원하지 않는다.
+      // 웹은 브라우저에 Web Speech API가 없을 때만 false다(마이크 권한은 듣기
+      // 시작할 때 묻는다). 웹 플러그인의 hasPermission은 지원 여부를 돌려주므로 쓰지 않는다.
+      if (kIsWeb) return SpeechStopReason.unsupported;
+      // 앱에서는 권한이 거부됐거나 기기가 지원하지 않는다.
       final allowed = await _speech.hasPermission.catchError((_) => false);
       return allowed
           ? SpeechStopReason.unsupported

@@ -81,6 +81,14 @@ void main() {
       DeviceSpeechInput.reasonFor('not-allowed'),
       SpeechStopReason.permissionDenied,
     );
+    expect(
+      DeviceSpeechInput.reasonFor('service-not-allowed'),
+      SpeechStopReason.serviceBlocked,
+    );
+    expect(
+      DeviceSpeechInput.reasonFor('not supported'),
+      SpeechStopReason.unsupported,
+    );
     expect(DeviceSpeechInput.reasonFor('no-speech'), SpeechStopReason.noMatch);
     expect(DeviceSpeechInput.reasonFor('network'), SpeechStopReason.error);
   });

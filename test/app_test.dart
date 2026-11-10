@@ -246,6 +246,22 @@ void main() {
       expect(find.textContaining('마이크 권한이 없어요'), findsOneWidget);
     });
 
+    testWidgets('음성 인식을 못 쓰면 키보드 입력으로 바꿀 수 있다', (tester) async {
+      final fakes = await pumpApp(tester);
+      fakes.speech.initProblem = SpeechStopReason.unsupported;
+      await tester.tap(find.byKey(const Key('newVoiceMemo')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('음성 인식을 쓸 수 없어요'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('typeInstead')));
+      await tester.pump();
+      expect(find.byKey(const Key('dictationStatus')), findsNothing);
+      final input = tester.widget<TextField>(
+        find.byKey(const Key('memoInput')),
+      );
+      expect(input.focusNode!.hasFocus, isTrue);
+    });
+
     testWidgets('아무 말도 인식하지 못하면 다시 말해 달라고 한다', (tester) async {
       final fakes = await pumpApp(tester);
       await tester.tap(find.byKey(const Key('newVoiceMemo')));

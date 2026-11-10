@@ -92,9 +92,15 @@ class Dictation extends ChangeNotifier {
   static String messageFor(SpeechStopReason reason) => switch (reason) {
     SpeechStopReason.permissionDenied =>
       '마이크 권한이 없어요. 브라우저나 기기 설정에서 마이크를 허용한 뒤 다시 눌러 주세요.',
+    SpeechStopReason.serviceBlocked =>
+      '이 기기에서 음성 인식 서비스를 쓸 수 없어요. iPhone은 설정 > 일반 > 키보드에서 '
+          '받아쓰기를 켠 뒤 다시 눌러 주세요. 지금은 글자로 입력해 주세요.',
     SpeechStopReason.noMatch => '잘 듣지 못했어요. 마이크 버튼을 누르고 다시 말해 주세요.',
     SpeechStopReason.unsupported =>
-      '이 기기나 브라우저에서는 음성 인식을 쓸 수 없어요. 글자로 입력해 주세요.',
+      kIsWeb
+          ? '이 브라우저에서는 음성 인식을 쓸 수 없어요. 글자로 입력하거나, '
+                'Android는 Chrome, iPhone은 Safari에서 열어 주세요.'
+          : '이 기기에서는 음성 인식을 쓸 수 없어요. 글자로 입력해 주세요.',
     SpeechStopReason.error => '음성 인식 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
     SpeechStopReason.done => '',
   };

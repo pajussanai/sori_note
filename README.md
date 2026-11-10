@@ -31,6 +31,21 @@ flutter run -d chrome
 다른 프로젝트로 실행하려면 `--dart-define=SUPABASE_URL=...`과
 `--dart-define=SUPABASE_PUBLISHABLE_KEY=...`로 덮어씁니다.
 
+## 웹 배포 (GitHub Pages)
+주소: https://pajussanai.github.io/sori_note/
+
+`main`에 푸시하면 [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml)이
+분석·테스트를 통과한 경우에만 `flutter build web --release --base-href /sori_note/`로 빌드해 배포합니다.
+
+처음 한 번 설정:
+1. GitHub 저장소 Settings → Pages → Source를 **GitHub Actions**로 바꿉니다.
+2. Supabase 대시보드 → Authentication → URL Configuration
+   - Site URL: `https://pajussanai.github.io/sori_note/`
+   - Redirect URLs에 `https://pajussanai.github.io/sori_note/`와 로컬 개발 주소(예: `http://localhost:*/**`)를 추가합니다.
+
+휴대폰에서는 홈 화면에 추가하면 앱처럼(standalone) 열립니다.
+Android Chrome: 메뉴 → 홈 화면에 추가(앱 설치) / iPhone Safari: 공유 → 홈 화면에 추가.
+
 ## 서버 설정 (처음 한 번)
 ```sh
 supabase link --project-ref tkbhtdkhipmsmfwfhhom
@@ -43,7 +58,9 @@ Supabase 대시보드 → Edge Functions → Secrets에 `GEMINI_API_KEY`를 등�
 ## 알아 둘 점
 - AI 다듬기를 누르면 그 메모 내용이 Google Gemini로 전송됩니다. 무료 등급에서는 Google이 제품 개선에 사용할 수 있습니다.
 - Gemini 무료 사용량을 넘으면 유료로 넘어가지 않고 오류로 알려 줍니다.
-- 웹 음성 인식은 Chrome·Edge에서 동작합니다(Chrome은 음성을 Google 서버로 보내 인식). Firefox는 지원하지 않습니다.
+- 웹 음성 인식은 브라우저의 Web Speech API를 씁니다. 지원 여부는 앱이 실행 중에 확인하고, 지원하지 않으면 안내와 함께 '키보드로 입력'을 보여 줍니다.
+  - PC·Android: Chrome, Edge에서 동작합니다(Chrome은 음성을 Google 서버로 보내 인식). Firefox는 지원하지 않습니다.
+  - iPhone: Safari에서 동작합니다(iOS 설정의 '받아쓰기'가 켜져 있어야 함). 홈 화면에 추가한 앱 모드와 iPhone의 다른 브라우저에서는 iOS 버전에 따라 동작하지 않을 수 있습니다.
 
 ## 테스트
 ```sh

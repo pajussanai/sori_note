@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-/// Supabase 연결 정보. 빌드할 때 넣는다(코드에 기본값을 두지 않는다).
+/// Supabase 연결 정보. 기본값은 소리노트 프로젝트(sori-note, `aexzuuzsdlnnklqklauw`)다.
 ///
 /// Flutter 웹에서는 여기 값이 브라우저로 내려가는 JavaScript에 포함된다.
 /// 그래서 공개해도 되는 publishable 키만 쓴다. 데이터 보호는 로그인과
@@ -11,12 +11,16 @@ import 'dart:convert';
 ///   --dart-define=SUPABASE_URL=https://<project-ref>.supabase.co \
 ///   --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 /// ```
-const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+const supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: 'https://aexzuuzsdlnnklqklauw.supabase.co',
+);
 const supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
+  defaultValue: 'sb_publishable_eGUFTrPAQCZb5rX51u-HSw_pWXFQiBY',
 );
 
-/// 연결 정보 없이 빌드했는지(이때 앱은 설정 안내 화면을 보여 준다)
+/// 연결 정보가 있는지(빌드할 때 빈 값으로 덮어쓰면 설정 안내 화면을 보여 준다)
 bool get isSupabaseConfigured =>
     supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty;
 

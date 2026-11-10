@@ -25,17 +25,17 @@ AI 키(`GEMINI_API_KEY`)는 Edge Function 서버 비밀값으로만 관리하며
 ## 실행
 ```sh
 flutter pub get
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://<project-ref>.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+flutter run -d chrome
 ```
-연결 정보 없이 실행하면 설정 안내 화면이 나옵니다.
+기본으로 소리노트 Supabase 프로젝트(`aexzuuzsdlnnklqklauw`)에 연결합니다.
+다른 프로젝트로 실행하려면 `--dart-define=SUPABASE_URL=...`과
+`--dart-define=SUPABASE_PUBLISHABLE_KEY=...`로 덮어씁니다.
 
 ## 서버 설정 (처음 한 번)
 ```sh
-supabase link --project-ref <project-ref>
+supabase link --project-ref aexzuuzsdlnnklqklauw
 supabase db push                                   # memos 테이블·RLS
-supabase functions deploy polish --use-api --project-ref <project-ref>
+supabase functions deploy polish --use-api --project-ref aexzuuzsdlnnklqklauw
 ```
 Supabase 대시보드 → Edge Functions → Secrets에 `GEMINI_API_KEY`를 등록합니다.
 선택: `GEMINI_MODEL`(모델 변경), `POLISH_DAILY_LIMIT`(사용자별 하루 다듬기 횟수, 기본 50).

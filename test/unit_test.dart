@@ -40,8 +40,15 @@ void main() {
   });
 
   group('Supabase 설정', () {
-    test('빌드 옵션이 없으면 설정 안 됨으로 본다', () {
-      expect(isSupabaseConfigured, isFalse);
+    test('기본값은 소리노트 프로젝트(publishable 키)', () {
+      expect(isSupabaseConfigured, isTrue);
+      expect(supabaseUrl, 'https://aexzuuzsdlnnklqklauw.supabase.co');
+      expect(supabasePublishableKey, startsWith('sb_publishable_'));
+      expect(
+        () =>
+            checkSupabaseConfig(url: supabaseUrl, key: supabasePublishableKey),
+        returnsNormally,
+      );
     });
 
     test('publishable 키만 허용하고 secret·service_role 키는 거부', () {

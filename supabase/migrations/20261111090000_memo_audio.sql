@@ -39,8 +39,8 @@ create table public.memo_audio (
   storage_path text        not null unique,
   mime_type    text        not null
                            check (mime_type in ('audio/mp4', 'audio/aac', 'audio/webm', 'audio/ogg')),
-  -- 녹음 한 번은 최대 30분
-  duration_ms  integer     not null check (duration_ms between 0 and 1800000),
+  -- 녹음 한 번은 최대 20분(앱 AudioLimits.maxDuration). 시간 측정 오차를 위해 1분 여유.
+  duration_ms  integer     not null check (duration_ms between 0 and 1260000),
   -- 버킷의 파일 크기 한도와 같은 20MB
   size_bytes   bigint      not null check (size_bytes between 1 and 20971520),
   created_at   timestamptz not null default now(),

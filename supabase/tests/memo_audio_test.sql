@@ -88,6 +88,20 @@ select throws_ok($$
 $$, '23514', null, '오디오가 아닌 형식은 저장할 수 없다');
 
 select throws_ok($$
+  insert into public.memo_audio (memo_id, storage_path, mime_type, duration_ms, size_bytes)
+  values ('aaaaaaaa-1111-4000-8000-000000000001',
+          'aaaaaaaa-0000-4000-8000-000000000001/aaaaaaaa-1111-4000-8000-000000000001/long.m4a',
+          'audio/mp4', 1300000, 1000)
+$$, '23514', null, '20분(+여유 1분)보다 긴 녹음은 저장할 수 없다');
+
+select throws_ok($$
+  insert into public.memo_audio (memo_id, storage_path, mime_type, duration_ms, size_bytes)
+  values ('aaaaaaaa-1111-4000-8000-000000000001',
+          'aaaaaaaa-0000-4000-8000-000000000001/aaaaaaaa-1111-4000-8000-000000000001/huge.m4a',
+          'audio/mp4', 1000, 20971521)
+$$, '23514', null, '20MB보다 큰 파일 정보는 저장할 수 없다');
+
+select throws_ok($$
   update public.memo_audio set size_bytes = 1 where id = 'aaaaaaaa-2222-4000-8000-000000000001'
 $$, '42501', null, '녹음 정보는 수정할 수 없다');
 

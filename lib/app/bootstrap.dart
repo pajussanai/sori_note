@@ -4,8 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config.dart';
 import '../core/errors.dart';
 import '../features/auth/auth_gate.dart';
+import '../services/app_settings.dart';
+import '../services/audio_player.dart';
+import '../services/audio_recorder.dart';
+import '../services/audio_repository.dart';
 import '../services/auth_service.dart';
 import '../services/memo_repository.dart';
+import '../services/pending_audio_store.dart';
 import '../services/polish_service.dart';
 import '../services/speech_input.dart';
 import '../widgets/status_view.dart';
@@ -31,11 +36,18 @@ class _SupabaseBootstrapState extends State<SupabaseBootstrap> {
       debug: false,
     );
     final client = Supabase.instance.client;
+    final settings = AppSettings(SharedPreferencesSettingsStore());
+    await settings.load();
     return AppServices(
       auth: SupabaseAuthService(client.auth),
       memos: SupabaseMemoRepository(client),
       polish: SupabasePolishService(client),
       createSpeechInput: DeviceSpeechInput.new,
+      audio: SupabaseAudioRepository(client),
+      pendingAudio: createPendingAudioStore(),
+      createRecorder: DeviceAudioRecorder.new,
+      createPlayer: JustAudioPlayback.new,
+      settings: settings,
     );
   }
 

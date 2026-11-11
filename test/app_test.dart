@@ -6,38 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sori_note/core/errors.dart';
 import 'package:sori_note/features/memos/memo_editor_page.dart';
 import 'package:sori_note/main.dart';
-import 'package:sori_note/models/memo.dart';
-import 'package:sori_note/services/auth_service.dart';
 import 'package:sori_note/services/polish_service.dart';
 import 'package:sori_note/services/speech_input.dart';
 
 import 'helpers/fakes.dart';
+import 'helpers/pump.dart';
 
 final memoInput = find.byKey(const Key('memoInput'));
 final micButton = find.byKey(const Key('micButton'));
 final polishButton = find.byKey(const Key('polishButton'));
-
-Memo memo(String id, String content, int minute) => Memo(
-  id: id,
-  content: content,
-  createdAt: DateTime.utc(2026, 11, 1, 9, minute),
-  updatedAt: DateTime.utc(2026, 11, 1, 9, minute),
-);
-
-Future<FakeServices> pumpApp(
-  WidgetTester tester, {
-  AppUser? user = testUser,
-  List<Memo> memos = const [],
-  Size size = const Size(420, 860),
-}) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  final fakes = FakeServices(user: user, memos: memos);
-  await tester.pumpWidget(SoriNoteApp(services: fakes.services));
-  await tester.pumpAndSettle();
-  return fakes;
-}
 
 String inputText(WidgetTester tester) => tester
     .widget<EditableText>(

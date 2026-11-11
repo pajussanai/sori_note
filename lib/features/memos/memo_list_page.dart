@@ -8,6 +8,8 @@ import '../../models/memo.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/status_view.dart';
+import '../audio/editor_audio.dart';
+import '../settings/settings_page.dart';
 import 'memo_editor_page.dart';
 import 'memos_controller.dart';
 
@@ -23,7 +25,12 @@ class MemoListPage extends StatefulWidget {
 }
 
 class _MemoListPageState extends State<MemoListPage> {
-  late final _memos = MemosController(widget.services.memos);
+  late final _memos = MemosController(
+    widget.services.memos,
+    audio: widget.services.audio,
+    pendingAudio: widget.services.pendingAudio,
+    userId: widget.user.id,
+  );
   bool _signingOut = false;
 
   @override
@@ -49,9 +56,13 @@ class _MemoListPageState extends State<MemoListPage> {
       ..showSnackBar(SnackBar(content: Text(notice)));
   }
 
-  Future<void> _open({Memo? memo, bool startRecording = false}) {
+  Future<void> _open({
+    Memo? memo,
+    bool startRecording = false,
+    bool startAudioRecording = false,
+  }) async {
     final services = widget.services;
-    return Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => MemoEditorPage(
           memo: memo,
@@ -61,10 +72,30 @@ class _MemoListPageState extends State<MemoListPage> {
           onSaved: _memos.saved,
           onDelete: _memos.delete,
           startRecording: startRecording,
+          startAudioRecording: startAudioRecording,
+          audio: EditorAudio(
+            repository: services.audio,
+            pendingStore: services.pendingAudio,
+            userId: widget.user.id,
+            createRecorder: services.createRecorder,
+            createPlayer: services.createPlayer,
+            settings: services.settings,
+          ),
         ),
       ),
     );
+    // 편집 화면에서 녹음을 저장·삭제했을 수 있으니 표시를 다시 맞춘다.
+    await _memos.refreshAudio();
   }
+
+  Future<void> _openSettings() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => SettingsPage(
+        settings: widget.services.settings,
+        audio: widget.services.audio,
+      ),
+    ),
+  );
 
   Future<void> _signOut() async {
     setState(() => _signingOut = true);
@@ -102,7 +133,8 @@ class _MemoListPageState extends State<MemoListPage> {
           PopupMenuButton<String>(
             tooltip: '계정',
             icon: const Icon(Icons.account_circle_outlined),
-            onSelected: (_) => _signOut(),
+            onSelected: (value) =>
+                value == 'settings' ? _openSettings() : _signOut(),
             itemBuilder: (context) => [
               PopupMenuItem<String>(
                 enabled: false,
@@ -110,6 +142,11 @@ class _MemoListPageState extends State<MemoListPage> {
                   widget.user.email ?? '로그인됨',
                   style: const TextStyle(fontSize: 13),
                 ),
+              ),
+              const PopupMenuItem<String>(
+                key: Key('openSettings'),
+                value: 'settings',
+                child: Text('설정'),
               ),
               PopupMenuItem<String>(
                 key: const Key('signOut'),
@@ -125,6 +162,24 @@ class _MemoListPageState extends State<MemoListPage> {
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 원본 음성 저장을 켠 경우에만 녹음 버튼을 보여 준다.
+          ListenableBuilder(
+            listenable: widget.services.settings,
+            builder: (context, _) => !widget.services.settings.saveOriginalAudio
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: FloatingActionButton(
+                      key: const Key('newAudioMemo'),
+                      heroTag: 'record',
+                      tooltip: '녹음 메모(원본 음성 저장)',
+                      backgroundColor: AppColors.surface,
+                      foregroundColor: AppColors.recording,
+                      onPressed: () => _open(startAudioRecording: true),
+                      child: const Icon(Icons.fiber_manual_record_rounded),
+                    ),
+                  ),
+          ),
           FloatingActionButton(
             key: const Key('newTextMemo'),
             heroTag: 'text',
@@ -169,12 +224,21 @@ class _MemoListPageState extends State<MemoListPage> {
     if (!_memos.hasMemos) return const _EmptyMemos();
 
     final memos = _memos.memos;
+    final audioIds = _memos.audioMemoIds;
     final now = DateTime.now();
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
         child: CustomScrollView(
           slivers: [
+            if (_memos.pendingCount > 0)
+              SliverToBoxAdapter(
+                child: _PendingBanner(
+                  count: _memos.pendingCount,
+                  retrying: _memos.retrying,
+                  onRetry: _memos.retryPending,
+                ),
+              ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -190,6 +254,31 @@ class _MemoListPageState extends State<MemoListPage> {
                 ),
               ),
             ),
+            // 녹음이 있는 메모가 있으면 '음성 기록'만 걸러 볼 수 있다.
+            if (audioIds.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        key: const Key('filterAll'),
+                        label: const Text('전체'),
+                        selected: !_memos.audioOnly,
+                        onSelected: (_) => _memos.showAudioOnly(false),
+                      ),
+                      ChoiceChip(
+                        key: const Key('filterAudio'),
+                        avatar: const Icon(Icons.graphic_eq_rounded, size: 16),
+                        label: Text('음성 기록 ${audioIds.length}'),
+                        selected: _memos.audioOnly,
+                        onSelected: (_) => _memos.showAudioOnly(true),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             if (memos.isEmpty)
               const SliverToBoxAdapter(
                 child: Padding(
@@ -212,6 +301,7 @@ class _MemoListPageState extends State<MemoListPage> {
                   return _MemoCard(
                     memo: memo,
                     time: formatListTime(memo.updatedAt, now),
+                    hasAudio: audioIds.contains(memo.id),
                     onTap: () => _open(memo: memo),
                   );
                 },
@@ -229,15 +319,23 @@ class _MemoCard extends StatelessWidget {
     required this.memo,
     required this.time,
     required this.onTap,
+    this.hasAudio = false,
   });
 
   final Memo memo;
   final String time;
   final VoidCallback onTap;
 
+  /// 원본 음성이 있는 메모
+  final bool hasAudio;
+
   @override
   Widget build(BuildContext context) {
     final preview = memo.preview;
+    // 글 없이 녹음만 있는 메모는 '새 메모' 대신 '음성 메모'로 보여 준다.
+    final title = hasAudio && memo.content.trim().isEmpty
+        ? '음성 메모'
+        : memo.title;
     return Card(
       key: ValueKey('memo-${memo.id}'),
       margin: EdgeInsets.zero,
@@ -251,9 +349,19 @@ class _MemoCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  if (hasAudio) ...[
+                    const Icon(
+                      Icons.graphic_eq_rounded,
+                      key: Key('memoHasAudio'),
+                      size: 18,
+                      color: AppColors.primary,
+                      semanticLabel: '녹음 있음',
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   Expanded(
                     child: Text(
-                      memo.title,
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -289,6 +397,57 @@ class _MemoCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 이 기기에 남아 있는(서버에 올리지 못한) 녹음 안내와 다시 올리기
+class _PendingBanner extends StatelessWidget {
+  const _PendingBanner({
+    required this.count,
+    required this.retrying,
+    required this.onRetry,
+  });
+
+  final int count;
+  final bool retrying;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('pendingBanner'),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_upload_outlined, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '저장하지 못한 녹음 $count개가 이 기기에 있어요.',
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ),
+          retrying
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : TextButton(
+                  key: const Key('retryPendingAll'),
+                  onPressed: onRetry,
+                  child: const Text('다시 저장'),
+                ),
+        ],
       ),
     );
   }

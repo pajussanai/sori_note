@@ -27,3 +27,17 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - run: flutter build web --release --base-href /sori_note/
+
+  # 새 DB 마이그레이션을 CI 안의 임시 로컬 Supabase(Docker)에서만 검증한다.
+  # 운영 DB(tkbhtdkhipmsmfwfhhom)에는 연결하지 않는다.
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+
+      - name: Check migration on a local database
+        run: bash tool/ci_db_check.sh 20261111090000

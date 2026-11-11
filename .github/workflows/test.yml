@@ -40,4 +40,13 @@ jobs:
           version: 2.121.0
 
       - name: Check migration on a local database
-        run: bash tool/ci_db_check.sh 20261111090000
+        run: |
+          set +e
+          bash tool/ci_db_check.sh 20261111090000 2>&1 | tee /tmp/db.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            # 실패 원인을 주석(annotation)으로 남긴다(로그는 로그인해야 볼 수 있으므로).
+            msg=$(tail -n 60 /tmp/db.log | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=DB check failed::${msg}"
+          fi
+          exit "$status"

@@ -62,6 +62,16 @@ Supabase 대시보드 → Edge Functions → Secrets에 `GEMINI_API_KEY`를 등�
   - PC·Android: Chrome, Edge에서 동작합니다(Chrome은 음성을 Google 서버로 보내 인식). Firefox는 지원하지 않습니다.
   - iPhone: Safari에서 동작합니다(iOS 설정의 '받아쓰기'가 켜져 있어야 함). 홈 화면에 추가한 앱 모드와 iPhone의 다른 브라우저에서는 iOS 버전에 따라 동작하지 않을 수 있습니다.
 
+## 앱 아이콘·로딩 화면
+로고('살아있는 노트': 노트 한 장에서 음파가 번져 나오는 모습)는
+[lib/widgets/app_logo.dart](lib/widgets/app_logo.dart)의 `SoriLogoPainter` 하나로 그립니다.
+앱 안 로고와 Android·iOS·PWA 아이콘, favicon, 로딩 화면 이미지를 모두 여기서 만듭니다.
+로고를 바꾼 뒤에는 다시 만듭니다.
+```sh
+flutter test tool/generate_brand_icons_test.dart   # 아이콘 44개를 만든다
+powershell -File tool/flatten_ios_icons.ps1        # iOS 아이콘의 투명도(알파) 제거
+```
+
 ## 테스트
 ```sh
 flutter analyze

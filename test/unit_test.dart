@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sori_note/core/config.dart';
 import 'package:sori_note/models/memo.dart';
 import 'package:sori_note/services/speech_input.dart';
+import 'package:sori_note/widgets/app_logo.dart';
 
 void main() {
   group('메모 제목과 미리보기', () {
@@ -74,6 +77,32 @@ void main() {
         throwsStateError,
       );
     });
+  });
+
+  test('로고는 모든 아이콘 모양으로 그려진다', () async {
+    for (final painter in const [
+      SoriLogoPainter(),
+      SoriLogoPainter(simple: true),
+      SoriLogoPainter(background: LogoBackground.square, scale: 0.8),
+      SoriLogoPainter(background: LogoBackground.none, scale: 0.62),
+      SoriLogoPainter(
+        background: LogoBackground.square,
+        paintForeground: false,
+      ),
+    ]) {
+      final recorder = ui.PictureRecorder();
+      painter.paint(Canvas(recorder), const Size.square(96));
+      final image = await recorder.endRecording().toImage(96, 96);
+      final pixels = await image.toByteData();
+      image.dispose();
+      // 무언가 그려졌는지(완전히 투명하지 않은지) 확인한다.
+      final bytes = pixels!.buffer.asUint8List();
+      var opaque = 0;
+      for (var i = 3; i < bytes.length; i += 4) {
+        if (bytes[i] > 0) opaque++;
+      }
+      expect(opaque, greaterThan(500));
+    }
   });
 
   test('음성 인식 오류 코드를 이유로 바꾼다', () {

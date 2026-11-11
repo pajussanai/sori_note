@@ -1,0 +1,29 @@
+# 작업 브랜치와 PR에서 분석·테스트·웹 빌드만 확인한다(배포하지 않는다).
+# 배포는 main에 반영될 때 deploy-pages.yml이 한다.
+name: Test
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release --base-href /sori_note/

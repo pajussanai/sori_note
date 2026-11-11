@@ -3,7 +3,7 @@
 --
 -- add-only 원칙
 --   - 기존 memos, polish_usage_daily 테이블·권한·정책과 함수는 바꾸지 않는다.
---   - 새 테이블 memo_audio, 새 함수 3개, 새 Storage 버킷 memo-audio와
+--   - 새 테이블 memo_audio, 새 함수 4개, 새 Storage 버킷 memo-audio와
 --     그 버킷에만 적용되는 Storage 정책 3개를 추가한다.
 --   - 되돌리기: supabase/rollback/20261111090000_memo_audio_rollback.sql
 --
@@ -57,6 +57,22 @@ create index memo_audio_user_id_created_at_idx
   on public.memo_audio (user_id, created_at desc);
 
 
+-- 본인 녹음 정보의 크기 합계. 추가 정책(RLS)에서 쓴다.
+-- 정책 안에서 같은 테이블을 직접 조회하면 무한 재귀가 되므로 security definer 함수로 분리하고,
+-- 다른 사람 것은 볼 수 없도록 매개변수 없이 auth.uid()만 쓴다.
+create function public.audio_bytes_used()
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(sum(a.size_bytes), 0)::bigint
+  from public.memo_audio a
+  where a.user_id = (select auth.uid());
+$$;
+
+
 -- 본인의 녹음 사용량(설정 화면 표시용)
 create function public.my_audio_usage()
 returns table (used_bytes bigint, limit_bytes bigint, file_count integer)
@@ -92,9 +108,11 @@ $$;
 revoke all on function public.audio_quota_bytes() from public, anon;
 revoke all on function public.my_audio_usage() from public, anon;
 revoke all on function public.audio_upload_allowed() from public, anon;
+revoke all on function public.audio_bytes_used() from public, anon;
 grant execute on function public.audio_quota_bytes() to authenticated, service_role;
 grant execute on function public.my_audio_usage() to authenticated, service_role;
 grant execute on function public.audio_upload_allowed() to authenticated, service_role;
+grant execute on function public.audio_bytes_used() to authenticated, service_role;
 
 
 -- ---------------------------------------------------------------------
@@ -123,10 +141,7 @@ create policy memo_audio_insert_own on public.memo_audio
       select 1 from public.memos m
       where m.id = memo_id and m.user_id = (select auth.uid())
     )
-    and (
-      select coalesce(sum(a.size_bytes), 0) from public.memo_audio a
-      where a.user_id = (select auth.uid())
-    ) + size_bytes <= public.audio_quota_bytes()
+    and public.audio_bytes_used() + size_bytes <= public.audio_quota_bytes()
   );
 
 create policy memo_audio_delete_own on public.memo_audio

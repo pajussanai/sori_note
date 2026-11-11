@@ -23,6 +23,7 @@ drop table if exists public.memo_audio;
 
 drop function if exists public.my_audio_usage();
 drop function if exists public.audio_upload_allowed();
+drop function if exists public.audio_bytes_used();
 drop function if exists public.audio_quota_bytes();
 
 commit;

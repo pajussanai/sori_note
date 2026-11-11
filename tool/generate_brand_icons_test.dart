@@ -69,7 +69,9 @@ List<_Icon> _icons() {
     final legacy = (48 * d).round();
     final layer = (108 * d).round();
     icons
-      ..add(_Icon('$res/mipmap-$name/ic_launcher.png', legacy, _rounded(48)))
+      ..add(
+        _Icon('$res/mipmap-$name/ic_launcher.png', legacy, _rounded(legacy)),
+      )
       ..add(
         _Icon(
           '$res/mipmap-$name/ic_launcher_background.png',

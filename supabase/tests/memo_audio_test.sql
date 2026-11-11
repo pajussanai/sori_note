@@ -163,5 +163,40 @@ select is((select count(*) from public.memo_audio), 0::bigint, '메모 삭제 �
 select is((select count(*) from public.memos where id = 'bbbbbbbb-1111-4000-8000-000000000002'),
   1::bigint, '다른 사용자 메모는 그대로');
 
+-- ------------------------------------------------------------- 프로젝트 전체 한도(800MB)
+insert into auth.users (id, email)
+values ('cccccccc-0000-4000-8000-000000000003', 'c@test.local');
+insert into public.memos (id, user_id, content)
+values ('cccccccc-1111-4000-8000-000000000003', 'cccccccc-0000-4000-8000-000000000003', 'C 메모');
+
+-- 다른 사용자(C)의 파일과 정보로 전체 한도를 채운다(관리자 권한으로).
+insert into storage.objects (bucket_id, name, owner_id, metadata)
+values ('memo-audio',
+        'cccccccc-0000-4000-8000-000000000003/cccccccc-1111-4000-8000-000000000003/full.m4a',
+        'cccccccc-0000-4000-8000-000000000003', '{"size": 838860800}');
+insert into public.memo_audio (user_id, memo_id, storage_path, mime_type, duration_ms, size_bytes)
+select 'cccccccc-0000-4000-8000-000000000003', 'cccccccc-1111-4000-8000-000000000003',
+       'cccccccc-0000-4000-8000-000000000003/cccccccc-1111-4000-8000-000000000003/f' || g || '.m4a',
+       'audio/mp4', 1000, 20971520
+from generate_series(1, 40) g;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "bbbbbbbb-0000-4000-8000-000000000002", "role": "authenticated"}';
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, owner_id, metadata)
+  values ('memo-audio',
+          'bbbbbbbb-0000-4000-8000-000000000002/bbbbbbbb-1111-4000-8000-000000000002/b1.m4a',
+          'bbbbbbbb-0000-4000-8000-000000000002', '{"size": 1000}')
+$$, '42501', null, '전체 한도(800MB)에 닿으면 누구도 새 파일을 올릴 수 없다');
+select throws_ok($$
+  insert into public.memo_audio (memo_id, storage_path, mime_type, duration_ms, size_bytes)
+  values ('bbbbbbbb-1111-4000-8000-000000000002',
+          'bbbbbbbb-0000-4000-8000-000000000002/bbbbbbbb-1111-4000-8000-000000000002/b1.m4a',
+          'audio/mp4', 1000, 1000)
+$$, '42501', null, '전체 한도에 닿으면 누구도 새 녹음을 연결할 수 없다');
+select results_eq($$ select used_bytes from public.my_audio_usage() $$,
+  $$ values (0::bigint) $$, '다른 사람의 사용량은 보이지 않는다');
+reset role;
+
 select * from finish();
 rollback;

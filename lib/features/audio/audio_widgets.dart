@@ -422,9 +422,14 @@ class _PendingTile extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                error == null
-                    ? '녹음 ${formatDuration(clip.audio.duration)} · 저장하는 중…'
-                    : '녹음 ${formatDuration(clip.audio.duration)} · 저장하지 못했어요\n$error',
+                switch ((clip.uploading, error)) {
+                  (true, _) =>
+                    '녹음 ${formatDuration(clip.audio.duration)} · 저장하는 중…',
+                  (false, null) =>
+                    '녹음 ${formatDuration(clip.audio.duration)} · 아직 서버에 저장하지 않았어요',
+                  (false, final e?) =>
+                    '녹음 ${formatDuration(clip.audio.duration)} · 저장하지 못했어요\n$e',
+                },
                 key: const Key('pendingStatus'),
                 style: TextStyle(
                   fontSize: 13,

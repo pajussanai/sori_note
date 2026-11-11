@@ -55,7 +55,8 @@ String describeError(Object error) {
       AudioErrorCode.notReady =>
         '서버의 녹음 저장 기능이 아직 준비되지 않았어요. 녹음은 이 기기에 보관해 둡니다.',
       AudioErrorCode.quotaExceeded =>
-        '녹음 보관 한도(계정당 100MB)를 넘었어요. 필요 없는 녹음을 지운 뒤 다시 시도해 주세요.',
+        '녹음 보관 한도(계정당 100MB 또는 서비스 전체 저장 공간)를 넘었어요. '
+            '필요 없는 녹음을 지운 뒤 다시 시도해 주세요. 녹음은 이 기기에 보관해 둡니다.',
       AudioErrorCode.tooLarge => '녹음 파일이 너무 커요(최대 20MB).',
       AudioErrorCode.unsupportedFormat => '서버에 저장할 수 없는 녹음 형식이에요.',
       AudioErrorCode.memoMissing => '연결할 메모가 없어요. 메모가 삭제되었을 수 있어요.',

@@ -3,7 +3,7 @@
 --
 -- add-only 원칙
 --   - 기존 memos, polish_usage_daily 테이블·권한·정책과 함수는 바꾸지 않는다.
---   - 새 테이블 memo_audio, 새 함수 4개, 새 Storage 버킷 memo-audio와
+--   - 새 테이블 memo_audio, 새 함수 5개, 새 Storage 버킷 memo-audio와
 --     그 버킷에만 적용되는 Storage 정책 3개를 추가한다.
 --   - 되돌리기: supabase/rollback/20261111090000_memo_audio_rollback.sql
 --
@@ -12,6 +12,7 @@
 --   2. 로그인 사용자는 자기 폴더의 파일만 올리고, 보고(재생), 지울 수 있다.
 --   3. 비로그인 사용자(anon)는 테이블과 파일 어디에도 접근할 수 없다.
 --   4. 사용자별 보관 한도(100MB)와 파일 크기 한도(20MB)를 서버에서 막는다.
+--   5. 무료 요금제를 넘지 않도록 프로젝트 전체 녹음 합계를 800MB로 막는다.
 --      (Supabase Free: 전체 파일 저장 1GB, 파일 하나 최대 50MB)
 -- =====================================================================
 
@@ -24,6 +25,17 @@ immutable
 set search_path = ''
 as $$
   select 104857600::bigint;
+$$;
+
+-- 프로젝트 전체 녹음 파일 합계 한도(바이트): 800MB.
+-- Supabase Free의 파일 저장 1GB를 넘지 않도록 여유를 둔다. 닿으면 새 녹음 저장만 막힌다.
+create function public.audio_total_limit_bytes()
+returns bigint
+language sql
+immutable
+set search_path = ''
+as $$
+  select 838860800::bigint;
 $$;
 
 
@@ -57,19 +69,21 @@ create index memo_audio_user_id_created_at_idx
   on public.memo_audio (user_id, created_at desc);
 
 
--- 본인 녹음 정보의 크기 합계. 추가 정책(RLS)에서 쓴다.
--- 정책 안에서 같은 테이블을 직접 조회하면 무한 재귀가 되므로 security definer 함수로 분리하고,
--- 다른 사람 것은 볼 수 없도록 매개변수 없이 auth.uid()만 쓴다.
-create function public.audio_bytes_used()
-returns bigint
+-- 녹음 정보 한 건(p_size 바이트)을 더해도 본인 한도와 프로젝트 전체 한도 안인지. 추가 정책(RLS)에서 쓴다.
+-- 정책 안에서 같은 테이블을 직접 조회하면 무한 재귀가 되므로 security definer 함수로 분리했다.
+-- 다른 사람의 사용량이 드러나지 않도록 참/거짓만 돌려준다.
+create function public.audio_row_allowed(p_size bigint)
+returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select coalesce(sum(a.size_bytes), 0)::bigint
-  from public.memo_audio a
-  where a.user_id = (select auth.uid());
+  select
+    coalesce(sum(a.size_bytes) filter (where a.user_id = (select auth.uid())), 0) + p_size
+      <= public.audio_quota_bytes()
+    and coalesce(sum(a.size_bytes), 0) + p_size <= public.audio_total_limit_bytes()
+  from public.memo_audio a;
 $$;
 
 
@@ -89,9 +103,9 @@ as $$
 $$;
 
 
--- Storage 업로드 정책에서 쓰는 한도 확인: 본인 폴더에 이미 있는 파일 합계가 한도 미만인지.
--- storage.objects를 읽어야 하므로 security definer로 만들고, 다른 사람 것은 볼 수 없도록
--- 매개변수 없이 auth.uid()만 쓴다.
+-- Storage 업로드 정책에서 쓰는 한도 확인: 본인 폴더의 파일 합계와 버킷 전체 파일 합계가
+-- 각각 한도 미만인지. storage.objects를 읽어야 하므로 security definer로 만들고,
+-- 다른 사람의 사용량이 드러나지 않도록 매개변수 없이 참/거짓만 돌려준다.
 create function public.audio_upload_allowed()
 returns boolean
 language sql
@@ -99,20 +113,25 @@ stable
 security definer
 set search_path = ''
 as $$
-  select coalesce(sum((o.metadata ->> 'size')::bigint), 0) < public.audio_quota_bytes()
+  select
+    coalesce(sum((o.metadata ->> 'size')::bigint)
+               filter (where (storage.foldername(o.name))[1] = (select auth.uid())::text), 0)
+      < public.audio_quota_bytes()
+    and coalesce(sum((o.metadata ->> 'size')::bigint), 0) < public.audio_total_limit_bytes()
   from storage.objects o
-  where o.bucket_id = 'memo-audio'
-    and (storage.foldername(o.name))[1] = (select auth.uid())::text;
+  where o.bucket_id = 'memo-audio';
 $$;
 
 revoke all on function public.audio_quota_bytes() from public, anon;
+revoke all on function public.audio_total_limit_bytes() from public, anon;
 revoke all on function public.my_audio_usage() from public, anon;
 revoke all on function public.audio_upload_allowed() from public, anon;
-revoke all on function public.audio_bytes_used() from public, anon;
+revoke all on function public.audio_row_allowed(bigint) from public, anon;
 grant execute on function public.audio_quota_bytes() to authenticated, service_role;
+grant execute on function public.audio_total_limit_bytes() to authenticated, service_role;
 grant execute on function public.my_audio_usage() to authenticated, service_role;
 grant execute on function public.audio_upload_allowed() to authenticated, service_role;
-grant execute on function public.audio_bytes_used() to authenticated, service_role;
+grant execute on function public.audio_row_allowed(bigint) to authenticated, service_role;
 
 
 -- ---------------------------------------------------------------------
@@ -141,7 +160,7 @@ create policy memo_audio_insert_own on public.memo_audio
       select 1 from public.memos m
       where m.id = memo_id and m.user_id = (select auth.uid())
     )
-    and public.audio_bytes_used() + size_bytes <= public.audio_quota_bytes()
+    and public.audio_row_allowed(size_bytes)
   );
 
 create policy memo_audio_delete_own on public.memo_audio

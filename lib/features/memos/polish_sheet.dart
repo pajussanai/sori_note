@@ -214,3 +214,61 @@ class _Box extends StatelessWidget {
     child: child,
   );
 }
+
+/// 'AI 다듬기' 버튼: 흰 바탕에 피치→라벤더 그라데이션 외곽선(면은 채우지 않는다).
+class AiPolishButton extends StatelessWidget {
+  const AiPolishButton({super.key, required this.onPressed, this.height = 44});
+
+  final VoidCallback? onPressed;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: brandGradient,
+          borderRadius: BorderRadius.all(Radius.circular(40)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(1.5),
+          child: Material(
+            color: AppColors.surface,
+            shape: const StadiumBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onPressed,
+              child: SizedBox(
+                height: height - 3,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.auto_fix_high_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'AI 다듬기',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

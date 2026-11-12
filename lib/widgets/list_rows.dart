@@ -5,6 +5,7 @@ import '../app/theme.dart';
 import '../core/date_utils.dart';
 import '../core/seoul_time.dart';
 import '../models/memo.dart';
+import '../models/memo_label.dart';
 import '../models/plan_item.dart';
 
 /// 화면 좌우 기본 여백
@@ -77,7 +78,7 @@ class SectionHeader extends StatelessWidget {
             TextButton(
               onPressed: onAction,
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.teal,
+                foregroundColor: AppColors.accent,
                 visualDensity: VisualDensity.compact,
               ),
               child: Text(action!),
@@ -97,21 +98,23 @@ class LabelLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final category = this.category;
+    final colors = category == null ? null : categoryColors(category);
     return Row(
       children: [
-        if (category != null)
+        if (category != null && colors != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: colors.bg,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              category!,
-              style: const TextStyle(
+              category,
+              style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+                color: colors.fg,
               ),
             ),
           ),
@@ -122,7 +125,7 @@ class LabelLine extends StatelessWidget {
               tags.map((t) => '#$t').join('  '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppColors.teal),
+              style: const TextStyle(fontSize: 12, color: AppColors.accent),
             ),
           ),
         ],
@@ -154,59 +157,72 @@ class MemoRow extends StatelessWidget {
     // 한 줄짜리 메모는 미리보기가 제목과 같으므로 보여 주지 않는다.
     final raw = preview ?? memo.preview;
     final text = raw == memo.title ? '' : raw;
+    final accent = label == null
+        ? AppColors.track
+        : categoryColors(label.category.label).fg.withValues(alpha: 0.55);
     return AppCard(
       key: ValueKey('memo-${memo.id}'),
       onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  memo.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMain,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                formatListTime(memo.updatedAt, DateTime.now()),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-          if (text.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              text,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.45,
-                color: AppColors.textSub,
-              ),
-            ),
-          ],
-          if (label != null) ...[
-            const SizedBox(height: 10),
-            LabelLine(
-              category: label.category.label,
-              tags: label.tags.take(3).toList(),
-            ),
-          ],
-        ],
+      padding: EdgeInsets.zero,
+      // 왼쪽 가는 색 줄로 분류를 구분한다(카드 모양으로 잘려 둥글게 보인다).
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accent, width: 4)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+          child: _memoBody(label, text),
+        ),
       ),
+    );
+  }
+
+  Widget _memoBody(MemoLabel? label, String text) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                memo.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMain,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              formatListTime(memo.updatedAt, DateTime.now()),
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+        if (text.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: AppColors.textSub,
+            ),
+          ),
+        ],
+        if (label != null) ...[
+          const SizedBox(height: 10),
+          LabelLine(
+            category: label.category.label,
+            tags: label.tags.take(3).toList(),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -260,6 +276,7 @@ class PlanRow extends StatelessWidget {
         ? '${relativeSeoulDate(seoulDay(due), today: today)} · 하루 종일'
         : '${relativeSeoulDate(seoulDay(due), today: today)} ${formatSeoulClock(due)}';
     final late = !plan.done && due != null && seoulDay(due).isBefore(today);
+    final isToday = due != null && seoulDay(due) == today;
     return InkWell(
       key: ValueKey('plan-${plan.id}'),
       onTap: onTap,
@@ -294,7 +311,17 @@ class PlanRow extends StatelessWidget {
                     late ? '$when · 지남' : when,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: late ? AppColors.danger : AppColors.textSub,
+                      fontWeight: isToday && !plan.done
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                      // 상태별 색: 지남 빨강, 오늘 피치, 완료 민트, 그 외 회색
+                      color: plan.done
+                          ? AppColors.done
+                          : late
+                          ? AppColors.danger
+                          : isToday
+                          ? AppColors.peachDeep
+                          : AppColors.textSub,
                     ),
                   ),
                 ],
@@ -307,7 +334,7 @@ class PlanRow extends StatelessWidget {
                     : Icons.notifications_none_rounded,
                 size: 18,
                 color: plan.notifiedAt == null
-                    ? AppColors.teal
+                    ? AppColors.accent
                     : AppColors.textMuted,
                 semanticLabel: plan.notifiedAt == null
                     ? '알림 ${plan.reminder!.label}'
@@ -367,6 +394,26 @@ class EmptyHint extends StatelessWidget {
           color: AppColors.textMuted,
           height: 1.5,
         ),
+      ),
+    );
+  }
+}
+
+/// 분류 색 점(필터 칩 앞)
+class CategoryDot extends StatelessWidget {
+  const CategoryDot(this.category, {super.key});
+
+  final String category;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = categoryColors(category);
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: colors.fg.withValues(alpha: 0.75),
+        shape: BoxShape.circle,
       ),
     );
   }

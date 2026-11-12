@@ -244,21 +244,24 @@ class _AppShellState extends State<AppShell> {
         ),
       );
     }
-    // 휴대폰: 아래 메뉴 + 오른쪽 아래 음성 기록 버튼(설정 탭에서는 숨김)
+    // 휴대폰: 아래 메뉴 + 오른쪽 아래 버튼.
+    // 홈은 텍스트 메모(위, 작게)와 음성 기록(아래, 크게)을 세로로 쌓고,
+    // 기록·검색·일정은 음성 기록만 둔다(설정에서는 숨김).
     return Scaffold(
       body: _page(),
-      floatingActionButton: _tab == AppShell.settingsTab
-          ? null
-          : SizedBox.square(
-              dimension: 64,
-              child: FloatingActionButton(
-                key: const Key('voiceFab'),
-                tooltip: '음성 기록',
-                heroTag: 'voiceFab',
-                onPressed: _openVoice,
-                child: const Icon(Icons.mic_rounded, size: 30),
-              ),
-            ),
+      floatingActionButton: switch (_tab) {
+        AppShell.settingsTab => null,
+        AppShell.homeTab => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _TextFab(onPressed: () => _openMemo(null)),
+            const SizedBox(height: 14),
+            _VoiceFab(key: const Key('newVoiceMemo'), onPressed: _openVoice),
+          ],
+        ),
+        _ => _VoiceFab(key: const Key('voiceFab'), onPressed: _openVoice),
+      },
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: DecoratedBox(
         decoration: const BoxDecoration(
@@ -375,6 +378,74 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// 음성 기록 버튼(크게): 진한 라벤더 원, 바깥에 피치→라벤더 그라데이션 테두리
+class _VoiceFab extends StatelessWidget {
+  const _VoiceFab({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: brandGradient,
+        boxShadow: softShadow,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.surface,
+        ),
+        child: SizedBox.square(
+          dimension: 60,
+          child: FloatingActionButton(
+            tooltip: '음성 기록',
+            heroTag: 'voiceFab',
+            elevation: 0,
+            highlightElevation: 0,
+            onPressed: onPressed,
+            child: const Icon(Icons.mic_rounded, size: 30),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 텍스트 메모 버튼(작게, 보조): 흰 원, 피치 연필
+class _TextFab extends StatelessWidget {
+  const _TextFab({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // 아래 큰 버튼과 가운데를 맞춘다.
+      padding: const EdgeInsets.only(right: 11),
+      child: SizedBox.square(
+        dimension: 48,
+        child: FloatingActionButton(
+          key: const Key('newTextMemo'),
+          tooltip: '텍스트 메모',
+          heroTag: 'textFab',
+          elevation: 2,
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.peachDeep,
+          shape: const CircleBorder(
+            side: BorderSide(color: AppColors.peach, width: 1.2),
+          ),
+          onPressed: onPressed,
+          child: const Icon(Icons.edit_rounded, size: 22),
+        ),
       ),
     );
   }

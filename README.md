@@ -91,9 +91,11 @@ Supabase 대시보드 → Edge Functions → Secrets에 `GEMINI_API_KEY`를 등�
   - iPhone: Safari에서 동작합니다(iOS 설정의 '받아쓰기'가 켜져 있어야 함). 홈 화면에 추가한 앱 모드와 iPhone의 다른 브라우저에서는 iOS 버전에 따라 동작하지 않을 수 있습니다.
 
 ## 브랜드(로고·아이콘·컬러)
-- 심볼: 왼쪽의 음성 파형이 오른쪽 메모 문서로 이어지는 모양(평면 벡터, 딥 틸·민트)
-- 컬러: Primary Teal `#548C83`, Deep Teal `#356B65`(주요 버튼·선택 메뉴), Secondary Mint `#B8D5C9`(태그·상태),
-  Background Ivory `#F7F8F3`, Surface White `#FFFFFF`, Text Charcoal `#303A38`, Border `#E8ECE7`
+- 심볼: 왼쪽의 음성 파형이 오른쪽 메모 문서로 이어지는 모양(평면 벡터, 라벤더·피치)
+- 핵심 컬러: Peach `#F2B18F`, Lavender `#A99BE0`, Ivory `#F7F3EC`(배경)
+- 보조 컬러: Soft Pink `#EBC5D1`, Mint `#B8D5C9`, Charcoal `#38363D`(글자), White `#FFFFFF`, Border `#EAE3E8`
+- 글자·버튼 대비용 진한 톤: Deep Lavender `#6B5CB8`(주요 버튼·선택 메뉴), Deep Peach `#B8673F`, Deep Mint `#3F7F67`
+- 그라데이션(피치→라벤더)은 카드 테두리·외곽선·얇은 강조선에만 씁니다(채우기·배경에는 쓰지 않음).
   ([lib/app/theme.dart](lib/app/theme.dart))
 - 에셋: [brand/svg](brand/svg)(심볼, 작은 심볼, 앱 아이콘, 한글·영문 워드마크), [brand/png](brand/png)(심볼 32~1024px,
   앱 아이콘 512·1024px, favicon 16·32·48px, 워드마크)

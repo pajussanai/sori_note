@@ -469,10 +469,34 @@ void main() {
   });
 
   group('화면 크기별 메뉴', () {
-    testWidgets('휴대폰: 아래 메뉴와 오른쪽 아래 음성 기록 버튼(설정에서는 숨김)', (tester) async {
+    testWidgets('휴대폰 홈: 오른쪽 아래에 텍스트 메모(위·작게)와 음성 기록(아래·크게)만 있다', (
+      tester,
+    ) async {
+      await pumpApp(tester, size: const Size(390, 844));
+      final text = find.byKey(const Key('newTextMemo'));
+      final voice = find.byKey(const Key('newVoiceMemo'));
+      // 같은 기능의 진입점이 홈에 하나씩만 있다(본문 카드 제거).
+      expect(text, findsOneWidget);
+      expect(voice, findsOneWidget);
+      expect(find.byKey(const Key('voiceFab')), findsNothing);
+
+      final textBox = tester.getRect(text);
+      final voiceBox = tester.getRect(voice);
+      final navBox = tester.getRect(find.byType(NavigationBar));
+      expect(textBox.bottom, lessThan(voiceBox.top)); // 텍스트 메모가 위
+      expect(textBox.width, lessThan(voiceBox.width)); // 음성 기록이 더 크다
+      expect(voiceBox.right, greaterThan(300)); // 오른쪽
+      expect(voiceBox.bottom, lessThanOrEqualTo(navBox.top)); // 아래 메뉴와 겹치지 않음
+      expect((textBox.center.dx - voiceBox.center.dx).abs(), lessThan(2));
+
+      await tester.tap(text);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('memoInput')), findsOneWidget);
+    });
+
+    testWidgets('휴대폰: 다른 탭은 음성 기록 버튼만, 설정에서는 숨김', (tester) async {
       final fakes = await pumpApp(tester, size: const Size(390, 844));
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byKey(const Key('voiceFab')), findsOneWidget);
       await goTab(tester, '기록');
       expect(find.byKey(const Key('voiceFab')), findsOneWidget);
       await tester.tap(find.byKey(const Key('voiceFab')));

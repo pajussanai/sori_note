@@ -123,6 +123,7 @@ class _SearchPageState extends State<SearchPage> {
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
                           key: Key('searchCategory-${c.name}'),
+                          avatar: CategoryDot(c.label),
                           label: Text(c.label),
                           selected: _category == c,
                           onSelected: (on) {

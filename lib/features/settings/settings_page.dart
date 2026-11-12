@@ -161,13 +161,21 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: '계정',
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.account_circle_outlined),
+                    leading: const _TintIcon(
+                      Icons.person_outline_rounded,
+                      AppColors.lavenderLight,
+                      AppColors.primary,
+                    ),
                     title: Text(widget.user.email ?? '로그인됨'),
                     subtitle: const Text('이메일 계정'),
                   ),
                   ListTile(
                     key: const Key('signOut'),
-                    leading: const Icon(Icons.logout_rounded),
+                    leading: const _TintIcon(
+                      Icons.logout_rounded,
+                      AppColors.pinkLight,
+                      AppColors.pinkDeep,
+                    ),
                     title: const Text('로그아웃'),
                     enabled: !_busy,
                     onTap: _signOut,
@@ -287,7 +295,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     future: _memoCount,
                     builder: (context, snapshot) => ListTile(
                       key: const Key('memoCount'),
-                      leading: const Icon(Icons.cloud_outlined),
+                      leading: const _TintIcon(
+                        Icons.cloud_outlined,
+                        AppColors.mintLight,
+                        AppColors.mintDeep,
+                      ),
                       title: Text(
                         snapshot.hasData
                             ? '서버에 저장된 메모 ${snapshot.data}개'
@@ -301,7 +313,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   FutureBuilder<int>(
                     future: _localBytes,
                     builder: (context, snapshot) => ListTile(
-                      leading: const Icon(Icons.phone_android_rounded),
+                      leading: const _TintIcon(
+                        Icons.phone_android_rounded,
+                        AppColors.peachLight,
+                        AppColors.peachDeep,
+                      ),
                       title: Text(
                         '이 기기: 분류 ${store.labelCount}개 · 일정 ${store.plans.length}개 · '
                         '요약 ${store.summaryCount}개',
@@ -314,7 +330,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   ListTile(
                     key: const Key('exportData'),
-                    leading: const Icon(Icons.download_rounded),
+                    leading: const _TintIcon(
+                      Icons.download_rounded,
+                      AppColors.lavenderLight,
+                      AppColors.primary,
+                    ),
                     title: const Text('데이터 내보내기(JSON)'),
                     subtitle: const Text('모든 메모와 분류·일정·요약'),
                     trailing: const Icon(Icons.chevron_right_rounded),
@@ -328,9 +348,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   ListTile(
                     key: const Key('deleteAccount'),
-                    leading: const Icon(
+                    leading: const _TintIcon(
                       Icons.delete_forever_outlined,
-                      color: AppColors.danger,
+                      Color(0xFFFBE9E7),
+                      AppColors.danger,
                     ),
                     title: const Text(
                       '계정 삭제',
@@ -455,6 +476,28 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           child: const Text('계정 삭제'),
         ),
       ],
+    );
+  }
+}
+
+/// 설정 항목 아이콘: 옅은 색 원 안의 아이콘(항목 구분)
+class _TintIcon extends StatelessWidget {
+  const _TintIcon(this.icon, this.bg, this.fg);
+
+  final IconData icon;
+  final Color bg;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(icon, size: 20, color: fg),
     );
   }
 }

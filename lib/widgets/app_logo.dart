@@ -58,7 +58,7 @@ class AppWordmark extends StatelessWidget {
             style: TextStyle(
               fontSize: fontSize * 0.62,
               fontWeight: FontWeight.w600,
-              color: AppColors.teal,
+              color: AppColors.accent,
             ),
           ),
         ],
@@ -84,11 +84,11 @@ abstract final class LogoGeometry {
   /// 둥근 사각형 바탕의 모서리 비율
   static const cornerRatio = 0.23;
 
-  static const background = AppColors.primary; // 딥 틸
-  static const wave = AppColors.mint; // 민트 파형
+  static const background = AppColors.primary; // 진한 라벤더
+  static const wave = AppColors.peach; // 피치 파형
   static const paper = Color(0xFFFFFFFF);
-  static const fold = AppColors.mint;
-  static const ink = AppColors.teal; // 문서 안 글줄
+  static const fold = AppColors.pink;
+  static const ink = AppColors.lavender; // 문서 안 글줄
 
   /// 문서(세로로 긴 메모지, 오른쪽 위를 접음)
   static const pageLeft = 0.46, pageTop = 0.22, pageRight = 0.80;

@@ -137,8 +137,6 @@ class _PlansPageState extends State<PlansPage> {
   Widget _card(List<PlanItem> plans) =>
       PlanCard(plans: plans, store: widget.store, onTap: widget.nav.editPlan);
 
-  static const _groupPadding = EdgeInsets.fromLTRB(4, 18, 0, 8);
-
   List<Widget> _list(List<PlanItem> items, String empty) => items.isEmpty
       ? [EmptyHint(empty, padding: const EdgeInsets.symmetric(vertical: 12))]
       : [const SizedBox(height: 8), _card(items)];
@@ -157,7 +155,7 @@ class _PlansPageState extends State<PlansPage> {
     final widgets = <Widget>[];
     if (overdue.isNotEmpty) {
       widgets
-        ..add(const SectionHeader('지난 일정(완료하지 않음)', padding: _groupPadding))
+        ..add(const _DayHeader('지난 일정(완료하지 않음)', AppColors.danger))
         ..add(_card(overdue));
     }
     final byDay = <DateTime, List<PlanItem>>{};
@@ -165,16 +163,51 @@ class _PlansPageState extends State<PlansPage> {
       (byDay[p.seoulDate!] ??= []).add(p);
     }
     for (final MapEntry(key: day, value: plans) in byDay.entries) {
+      final diff = day.difference(today).inDays;
       widgets
         ..add(
-          SectionHeader(
+          _DayHeader(
             relativeSeoulDate(day, today: today),
-            padding: _groupPadding,
+            // 오늘 피치, 내일 라벤더, 그 뒤 민트
+            switch (diff) {
+              0 => AppColors.peach,
+              1 => AppColors.lavender,
+              _ => AppColors.mint,
+            },
           ),
         )
         ..add(_card(plans));
     }
     return widgets;
+  }
+}
+
+/// 날짜 묶음 제목: 상태 색 점 + 날짜
+class _DayHeader extends StatelessWidget {
+  const _DayHeader(this.title, this.color);
+
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 18, 0, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
   }
 }
 

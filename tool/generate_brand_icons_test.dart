@@ -234,7 +234,7 @@ String wordmarkSvg({
       '<text x="${height + 36}" y="${height / 2}" dominant-baseline="central" '
       'font-family="Pretendard, \'Noto Sans KR\', \'Apple SD Gothic Neo\', \'Malgun Gothic\', sans-serif" '
       'font-size="$fontSize" font-weight="800" letter-spacing="-1" '
-      'fill="${_hex(const Color(0xFF303A38))}">$text</text>\n</svg>\n';
+      'fill="${_hex(const Color(0xFF38363D))}">$text</text>\n</svg>\n';
 }
 
 Map<String, String> _svgs() => {

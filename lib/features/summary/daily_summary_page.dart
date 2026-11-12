@@ -340,7 +340,7 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
                         width: 4,
                         height: 16,
                         decoration: BoxDecoration(
-                          color: AppColors.mint,
+                          color: _sectionColor(s),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -452,3 +452,13 @@ class _DayBar extends StatelessWidget {
     );
   }
 }
+
+/// 섹션마다 보조 색을 달리해 구분한다(피치·라벤더 중심).
+Color _sectionColor(SummarySection s) => switch (s) {
+  SummarySection.highlights => AppColors.lavender,
+  SummarySection.progress => AppColors.peach,
+  SummarySection.decisions => AppColors.primary,
+  SummarySection.issues => AppColors.pink,
+  SummarySection.todos => AppColors.mint,
+  SummarySection.remember => AppColors.peachDeep,
+};

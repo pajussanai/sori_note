@@ -277,7 +277,7 @@ class _StatusBar extends StatelessWidget {
       VoiceState.ready => ('녹음 준비', AppColors.primary, Icons.mic_none_rounded),
       VoiceState.starting => (
         '마이크 준비 중',
-        AppColors.teal,
+        AppColors.accent,
         Icons.mic_none_rounded,
       ),
       VoiceState.listening => (
@@ -286,7 +286,7 @@ class _StatusBar extends StatelessWidget {
         Icons.mic_rounded,
       ),
       VoiceState.paused => ('일시정지', AppColors.paused, Icons.pause_rounded),
-      VoiceState.finished => ('변환 완료', AppColors.primary, Icons.check_rounded),
+      VoiceState.finished => ('변환 완료', AppColors.done, Icons.check_rounded),
       VoiceState.failed => ('직접 입력', AppColors.textSub, Icons.keyboard_rounded),
     };
     final elapsed = session.elapsed;
@@ -359,7 +359,12 @@ class _StatusBar extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             timeText,
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            _Waveform(
+              active: state == VoiceState.listening,
+              tick: elapsed.inMilliseconds ~/ 500,
+            ),
+            const SizedBox(height: 10),
             pill,
           ] else
             Row(
@@ -524,12 +529,10 @@ class _Controls extends StatelessWidget {
           const SizedBox(width: 8),
         ],
         Expanded(
-          child: OutlinedButton.icon(
+          child: AiPolishButton(
             key: const Key('voicePolish'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 54)),
+            height: 54,
             onPressed: saving ? null : onPolish,
-            icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-            label: const Text('AI 다듬기'),
           ),
         ),
         const SizedBox(width: 10),
@@ -579,5 +582,52 @@ class _BigButton extends StatelessWidget {
       icon: Icon(icon),
       label: Text(label, style: const TextStyle(fontSize: 16)),
     );
+  }
+}
+
+/// 녹음 진행 표시 파형(피치·라벤더 막대). 실제 음량이 아니라 녹음 중임을 보여 주는 표시다.
+/// 따로 애니메이션 타이머를 돌리지 않고, 녹음 시간 갱신(0.5초)마다 막대 높이를 부드럽게 바꾼다.
+class _Waveform extends StatelessWidget {
+  const _Waveform({required this.active, required this.tick});
+
+  final bool active;
+  final int tick;
+
+  static const _count = 21;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const Key('voiceWave'),
+      height: 40,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          for (var i = 0; i < _count; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeInOut,
+              width: 4,
+              height: active ? _height(i) : 6,
+              decoration: BoxDecoration(
+                color: (i.isEven ? AppColors.peach : AppColors.lavender)
+                    .withValues(alpha: active ? 1 : 0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 가운데가 높고 가장자리가 낮은 모양에, 시간에 따라 조금씩 다른 높이를 더한다.
+  double _height(int i) {
+    final center = (_count - 1) / 2;
+    final envelope = 1 - ((i - center).abs() / center) * 0.6;
+    final wobble = ((i * 7 + tick * 5) % 11) / 10; // 0.0 ~ 1.0
+    return 8 + 30 * envelope * (0.35 + 0.65 * wobble);
   }
 }

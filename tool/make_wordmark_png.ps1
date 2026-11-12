@@ -4,7 +4,7 @@
 Add-Type -AssemblyName System.Drawing
 $root = Join-Path $PSScriptRoot '..\brand\png'
 $symbol = [System.Drawing.Image]::FromFile((Join-Path $root 'sori_symbol_256.png'))
-$charcoal = [System.Drawing.Color]::FromArgb(255, 0x30, 0x3A, 0x38)
+$charcoal = [System.Drawing.Color]::FromArgb(255, 0x38, 0x36, 0x3D)
 
 function Make-Wordmark([string]$text, [string]$font, [string]$out) {
   $height = 320

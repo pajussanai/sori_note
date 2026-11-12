@@ -79,6 +79,7 @@ class _RecordsPageState extends State<RecordsPage> {
                                 padding: const EdgeInsets.only(left: 8),
                                 child: ChoiceChip(
                                   key: Key('filter-${c.name}'),
+                                  avatar: CategoryDot(c.label),
                                   label: Text('${c.label} ${counts[c]}'),
                                   selected: _category == c,
                                   onSelected: (_) =>

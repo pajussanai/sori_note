@@ -9,6 +9,8 @@ import 'package:sori_note/main.dart';
 import 'package:sori_note/services/polish_service.dart';
 import 'package:sori_note/services/speech_input.dart';
 
+import 'package:sori_note/widgets/list_rows.dart';
+
 import 'helpers/fakes.dart';
 import 'helpers/pump.dart';
 
@@ -63,11 +65,11 @@ void main() {
         tester,
         memos: [memo('a', '장보기\n우유, 계란', 1), memo('b', '회의 메모\n다음 주 발표 준비', 5)],
       );
-      final titles = tester
-          .widgetList<Card>(find.byType(Card))
-          .map((c) => (c.key as ValueKey<String>).value)
+      final ids = tester
+          .widgetList<MemoRow>(find.byType(MemoRow))
+          .map((r) => r.memo.id)
           .toList();
-      expect(titles, ['memo-b', 'memo-a']);
+      expect(ids, ['b', 'a']);
       expect(find.text('장보기'), findsOneWidget);
       expect(find.text('우유, 계란'), findsOneWidget);
     });
@@ -77,13 +79,16 @@ void main() {
         tester,
         memos: [memo('a', '장보기 우유', 1), memo('b', '회의 메모', 2)],
       );
+      await goTab(tester, '검색');
       await tester.enterText(find.byKey(const Key('searchInput')), '우유');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
       expect(find.text('장보기 우유'), findsOneWidget);
       expect(find.text('회의 메모'), findsNothing);
 
       await tester.enterText(find.byKey(const Key('searchInput')), '없는말');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
       expect(find.text('검색 결과가 없어요.'), findsOneWidget);
     });
 
@@ -166,6 +171,8 @@ void main() {
       final fakes = await pumpApp(tester, memos: [memo('a', '지울 메모', 1)]);
       await tester.tap(find.text('지울 메모'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('memoMenu')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('deleteMemoButton')));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, '삭제'));
@@ -178,10 +185,18 @@ void main() {
   });
 
   group('말로 메모(받아쓰기)', () {
-    testWidgets("'말로 메모'는 바로 듣기 시작하고, 들은 글을 넣어 저장한다", (tester) async {
+    /// 새 텍스트 메모를 열고 마이크로 받아쓰기를 시작한다.
+    Future<FakeServices> startDictation(WidgetTester tester) async {
       final fakes = await pumpApp(tester);
-      await tester.tap(find.byKey(const Key('newVoiceMemo')));
+      await tester.tap(find.byKey(const Key('newTextMemo')));
       await tester.pumpAndSettle();
+      await tester.tap(micButton);
+      await tester.pumpAndSettle();
+      return fakes;
+    }
+
+    testWidgets('마이크를 누르면 듣기 시작하고, 들은 글을 넣어 저장한다', (tester) async {
+      final fakes = await startDictation(tester);
       expect(fakes.speech.isListening, isTrue);
       expect(find.textContaining('듣고 있어요'), findsOneWidget);
 
@@ -215,18 +230,26 @@ void main() {
     });
 
     testWidgets('마이크 권한이 없으면 해결 방법을 안내한다', (tester) async {
-      final fakes = await pumpApp(tester);
-      fakes.speech.initProblem = SpeechStopReason.permissionDenied;
-      await tester.tap(find.byKey(const Key('newVoiceMemo')));
+      final fakes = await pumpApp(
+        tester,
+        setUp: (f) => f.speech.initProblem = SpeechStopReason.permissionDenied,
+      );
+      await tester.tap(find.byKey(const Key('newTextMemo')));
+      await tester.pumpAndSettle();
+      await tester.tap(micButton);
       await tester.pumpAndSettle();
       expect(fakes.speech.isListening, isFalse);
       expect(find.textContaining('마이크 권한이 없어요'), findsOneWidget);
     });
 
     testWidgets('음성 인식을 못 쓰면 키보드 입력으로 바꿀 수 있다', (tester) async {
-      final fakes = await pumpApp(tester);
-      fakes.speech.initProblem = SpeechStopReason.unsupported;
-      await tester.tap(find.byKey(const Key('newVoiceMemo')));
+      await pumpApp(
+        tester,
+        setUp: (f) => f.speech.initProblem = SpeechStopReason.unsupported,
+      );
+      await tester.tap(find.byKey(const Key('newTextMemo')));
+      await tester.pumpAndSettle();
+      await tester.tap(micButton);
       await tester.pumpAndSettle();
       expect(find.textContaining('음성 인식을 쓸 수 없어요'), findsOneWidget);
 
@@ -240,9 +263,7 @@ void main() {
     });
 
     testWidgets('아무 말도 인식하지 못하면 다시 말해 달라고 한다', (tester) async {
-      final fakes = await pumpApp(tester);
-      await tester.tap(find.byKey(const Key('newVoiceMemo')));
-      await tester.pumpAndSettle();
+      final fakes = await startDictation(tester);
       fakes.speech.finish();
       await tester.pump();
       expect(find.textContaining('잘 듣지 못했어요'), findsOneWidget);

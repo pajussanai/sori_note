@@ -1,16 +1,12 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:sori_note/app/services.dart';
-import 'package:sori_note/models/memo_audio.dart';
-import 'package:sori_note/services/app_settings.dart';
-import 'package:sori_note/services/audio_player.dart';
-import 'package:sori_note/services/audio_recorder.dart';
-import 'package:sori_note/services/audio_repository.dart';
-import 'package:sori_note/services/pending_audio_store.dart';
 import 'package:sori_note/models/memo.dart';
+import 'package:sori_note/services/account_service.dart';
 import 'package:sori_note/services/auth_service.dart';
+import 'package:sori_note/services/local_store.dart';
 import 'package:sori_note/services/memo_repository.dart';
+import 'package:sori_note/services/notifier.dart';
 import 'package:sori_note/services/polish_service.dart';
 import 'package:sori_note/services/speech_input.dart';
 
@@ -118,9 +114,29 @@ class FakeSpeechInput implements SpeechInput {
   }
 }
 
+/// 서버 대신 쓰는 AI 다듬기. [result]를 돌려주거나 [error]를 던진다.
+class FakePolishService implements PolishService {
+  String Function(String text) result = (text) => '다듬은: $text';
+  Object? error;
+  final requests = <String>[];
+
+  /// 값이 있으면 완료될 때까지 응답을 미룬다(로딩 화면 확인용).
+  Completer<void>? gate;
+
+  @override
+  Future<String> polish(String text) async {
+    requests.add(text);
+    if (gate != null) await gate!.future;
+    if (error != null) throw error!;
+    return result(text);
+  }
+}
+
 /// 서버 대신 메모를 메모리에 저장한다.
 class FakeMemoRepository implements MemoRepository {
-  FakeMemoRepository([List<Memo> initial = const []]) : rows = [...initial];
+  FakeMemoRepository([List<Memo> initial = const [], DateTime? start])
+    : rows = [...initial],
+      _clock = start ?? DateTime.utc(2026, 11, 10, 1);
 
   final List<Memo> rows;
   final calls = <String>[];
@@ -128,18 +144,56 @@ class FakeMemoRepository implements MemoRepository {
   Object? saveError;
   Object? deleteError;
   int _next = 1;
-  DateTime _clock = DateTime.utc(2026, 11, 10, 1);
+  DateTime _clock;
 
   DateTime _tick() => _clock = _clock.add(const Duration(minutes: 1));
 
+  List<Memo> get _sorted =>
+      [...rows]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
   @override
-  Future<List<Memo>> fetchMemos() async {
+  Future<List<Memo>> fetchMemos({
+    int limit = MemoRepository.pageSize,
+    DateTime? before,
+  }) async {
     calls.add('fetch');
     if (fetchError != null) throw fetchError!;
-    final sorted = [...rows]
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return sorted;
+    return _sorted
+        .where((m) => before == null || m.updatedAt.isBefore(before))
+        .take(limit)
+        .toList();
   }
+
+  @override
+  Future<List<Memo>> fetchMemosBetween(DateTime start, DateTime end) async {
+    calls.add('between');
+    if (fetchError != null) throw fetchError!;
+    bool inRange(DateTime t) => !t.isBefore(start) && t.isBefore(end);
+    return [
+      for (final m in rows)
+        if (inRange(m.createdAt) || inRange(m.updatedAt)) m,
+    ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
+  @override
+  Future<List<Memo>> searchMemos(String query, {int limit = 50}) async {
+    calls.add('search:$query');
+    if (fetchError != null) throw fetchError!;
+    final q = query.toLowerCase();
+    return _sorted
+        .where((m) => m.content.toLowerCase().contains(q))
+        .take(limit)
+        .toList();
+  }
+
+  @override
+  Future<List<Memo>> fetchMemosByIds(Iterable<String> ids) async {
+    final set = ids.toSet();
+    return _sorted.where((m) => set.contains(m.id)).toList();
+  }
+
+  @override
+  Future<int> countMemos() async => rows.length;
 
   @override
   Future<Memo> createMemo(String content) async {
@@ -172,206 +226,62 @@ class FakeMemoRepository implements MemoRepository {
     if (deleteError != null) throw deleteError!;
     rows.removeWhere((m) => m.id == id);
   }
-}
-
-/// 서버 대신 쓰는 AI 다듬기. [result]를 돌려주거나 [error]를 던진다.
-class FakePolishService implements PolishService {
-  String Function(String text) result = (text) => '다듬은: $text';
-  Object? error;
-  final requests = <String>[];
-
-  /// 값이 있으면 완료될 때까지 응답을 미룬다(로딩 화면 확인용).
-  Completer<void>? gate;
 
   @override
-  Future<String> polish(String text) async {
-    requests.add(text);
-    if (gate != null) await gate!.future;
-    if (error != null) throw error!;
-    return result(text);
-  }
-}
-
-/// 기기 녹음기 대신 쓴다. 테스트가 결과와 문제를 정한다.
-class FakeRecorder implements AudioRecorderService {
-  RecorderProblem? startProblem;
-  RecordedAudio? result = RecordedAudio(
-    bytes: Uint8List.fromList(List.filled(1000, 7)),
-    mimeType: 'audio/mp4',
-  );
-  final calls = <String>[];
-
-  @override
-  Future<RecorderProblem?> start() async {
-    calls.add('start');
-    return startProblem;
-  }
-
-  @override
-  Future<void> pause() async => calls.add('pause');
-
-  @override
-  Future<void> resume() async => calls.add('resume');
-
-  @override
-  Future<RecordedAudio?> stop() async {
-    calls.add('stop');
-    return result;
-  }
-
-  @override
-  Future<void> cancel() async => calls.add('cancel');
-
-  @override
-  Future<void> dispose() async => calls.add('dispose');
-}
-
-/// 서버(Storage·memo_audio) 대신 녹음을 메모리에 저장한다.
-class FakeAudioRepository implements AudioRepository {
-  final rows = <MemoAudio>[];
-  final files = <String>{};
-  final calls = <String>[];
-  Object? uploadError;
-  Object? deleteError;
-  Object? fetchError;
-
-  @override
-  Future<List<MemoAudio>> fetchForMemo(String memoId) async {
-    if (fetchError != null) throw fetchError!;
-    return rows.where((r) => r.memoId == memoId).toList();
-  }
-
-  @override
-  Future<Set<String>> memoIdsWithAudio() async {
-    if (fetchError != null) throw fetchError!;
-    return {for (final r in rows) r.memoId};
-  }
-
-  @override
-  Future<MemoAudio> upload(PendingAudio audio) async {
-    calls.add('upload:${audio.memoId}');
-    if (uploadError != null) throw uploadError!;
-    files.add(audio.storagePath);
-    final row = MemoAudio(
-      id: audio.id,
-      memoId: audio.memoId,
-      storagePath: audio.storagePath,
-      mimeType: audio.mimeType,
-      duration: audio.duration,
-      sizeBytes: audio.bytes.length,
-      createdAt: audio.createdAt,
-    );
-    rows.removeWhere((r) => r.id == audio.id);
-    rows.add(row);
-    return row;
-  }
-
-  @override
-  Future<String> playbackUrl(MemoAudio audio) async =>
-      'https://audio/${audio.id}';
-
-  @override
-  Future<void> delete(MemoAudio audio) async {
-    calls.add('delete:${audio.id}');
+  Future<void> deleteAllMemos() async {
+    calls.add('deleteAll');
     if (deleteError != null) throw deleteError!;
-    files.remove(audio.storagePath);
-    rows.removeWhere((r) => r.id == audio.id);
+    rows.clear();
   }
-
-  @override
-  Future<void> deleteAllForMemo(String memoId) async {
-    calls.add('deleteAll:$memoId');
-    if (deleteError != null) throw deleteError!;
-    for (final r in rows.where((r) => r.memoId == memoId)) {
-      files.remove(r.storagePath);
-    }
-    rows.removeWhere((r) => r.memoId == memoId);
-  }
-
-  @override
-  Future<AudioUsage> usage() async => AudioUsage(
-    usedBytes: rows.fold(0, (sum, r) => sum + r.sizeBytes),
-    limitBytes: AudioLimits.quotaBytes,
-    fileCount: rows.length,
-  );
 }
 
-/// 재생기 대신 쓴다. 재생·위치 이동을 기록한다.
-class FakePlayback implements AudioPlayback {
+/// 계정 삭제·사용량 서버 기능 대신 쓴다.
+class FakeAccountService implements AccountService {
+  AccountDeletion deletion = AccountDeletion.memosOnly;
+  List<DailyUsage> usage = const [];
   final calls = <String>[];
-  final _position = StreamController<Duration>.broadcast();
-  final _playing = StreamController<bool>.broadcast();
-  final _completed = StreamController<void>.broadcast();
 
   @override
-  Future<Duration?> load(String url) async {
-    calls.add('load:$url');
-    return null;
+  Future<AccountDeletion> deleteAccount() async {
+    calls.add('deleteAccount');
+    return deletion;
   }
 
   @override
-  Future<void> play() async {
-    calls.add('play');
-    _playing.add(true);
-  }
-
-  @override
-  Future<void> pause() async {
-    calls.add('pause');
-    _playing.add(false);
-  }
-
-  @override
-  Future<void> seek(Duration position) async {
-    calls.add('seek:${position.inMilliseconds}');
-    _position.add(position);
-  }
-
-  @override
-  Stream<Duration> get positionStream => _position.stream;
-
-  @override
-  Stream<bool> get playingStream => _playing.stream;
-
-  @override
-  Stream<void> get completedStream => _completed.stream;
-
-  @override
-  Future<void> dispose() async => calls.add('dispose');
+  Future<List<DailyUsage>> polishUsage({int days = 7}) async => usage;
 }
+
+/// 테스트의 '지금': 2026-11-12(목) 한국 시간 오전 10시
+final testNow = DateTime.utc(2026, 11, 12, 1);
 
 /// 테스트용 서비스 묶음
 class FakeServices {
   FakeServices({
     AppUser? user,
     List<Memo> memos = const [],
-    bool saveOriginalAudio = false,
+    DateTime? memoClock,
+    NotifyPermission permission = NotifyPermission.granted,
   }) : auth = FakeAuthService(user: user),
-       memos = FakeMemoRepository(memos),
-       settings = AppSettings(
-         MemorySettingsStore()
-           ..values['save_original_audio'] = saveOriginalAudio,
-       );
+       memos = FakeMemoRepository(memos, memoClock),
+       notifier = SilentNotifier(permission);
 
   final FakeAuthService auth;
   final FakeMemoRepository memos;
   final polish = FakePolishService();
   final speech = FakeSpeechInput();
-  final audio = FakeAudioRepository();
-  final pendingAudio = MemoryPendingAudioStore();
-  final recorder = FakeRecorder();
-  final player = FakePlayback();
-  final AppSettings settings;
+  final account = FakeAccountService();
+  final local = MemoryKeyValueStore();
+  final SilentNotifier notifier;
+  DateTime now = testNow;
 
   AppServices get services => AppServices(
     auth: auth,
     memos: memos,
     polish: polish,
     createSpeechInput: () => speech,
-    audio: audio,
-    pendingAudio: pendingAudio,
-    createRecorder: () => recorder,
-    createPlayer: () => player,
-    settings: settings,
+    account: account,
+    local: local,
+    notifier: notifier,
+    clock: () => now,
   );
 }

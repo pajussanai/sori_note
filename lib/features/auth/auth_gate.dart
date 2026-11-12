@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/services.dart';
 import '../../services/auth_service.dart';
-import '../memos/memo_list_page.dart';
+import '../shell/app_shell.dart';
 import 'auth_page.dart';
 
 /// 로그인 상태에 따라 로그인 화면 또는 메모 목록을 보여 준다.
@@ -23,11 +23,7 @@ class AuthGate extends StatelessWidget {
         final user = snapshot.data;
         if (user == null) return AuthPage(auth: auth);
         // 계정이 바뀌면 이전 사용자의 화면 상태를 남기지 않는다.
-        return MemoListPage(
-          key: ValueKey(user.id),
-          user: user,
-          services: services,
-        );
+        return AppShell(key: ValueKey(user.id), user: user, services: services);
       },
     );
   }

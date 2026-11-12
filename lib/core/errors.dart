@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../services/audio_repository.dart';
 import '../services/polish_service.dart';
 
 /// 서버가 요청을 처리했는지 알 수 없는 오류인지 판단한다.
@@ -9,9 +8,7 @@ import '../services/polish_service.dart';
 /// 네트워크 오류나 시간 초과는 서버에는 반영됐을 수 있으므로,
 /// 화면을 서버 데이터로 다시 맞춰야 한다.
 bool isUncertainFailure(Object error) =>
-    error is! PostgrestException &&
-    error is! AuthApiException &&
-    error is! AudioException;
+    error is! PostgrestException && error is! AuthApiException;
 
 /// 사용자에게 보여 줄 오류 문구. 서버 원문이나 토큰은 노출하지 않는다.
 String describeError(Object error) {
@@ -50,19 +47,6 @@ String describeError(Object error) {
       _ => 'AI 다듬기에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     };
   }
-  if (error is AudioException) {
-    return switch (error.code) {
-      AudioErrorCode.notReady =>
-        '서버의 녹음 저장 기능이 아직 준비되지 않았어요. 녹음은 이 기기에 보관해 둡니다.',
-      AudioErrorCode.quotaExceeded =>
-        '녹음 보관 한도(계정당 100MB 또는 서비스 전체 저장 공간)를 넘었어요. '
-            '필요 없는 녹음을 지운 뒤 다시 시도해 주세요. 녹음은 이 기기에 보관해 둡니다.',
-      AudioErrorCode.tooLarge => '녹음 파일이 너무 커요(최대 20MB).',
-      AudioErrorCode.unsupportedFormat => '서버에 저장할 수 없는 녹음 형식이에요.',
-      AudioErrorCode.memoMissing => '연결할 메모가 없어요. 메모가 삭제되었을 수 있어요.',
-      AudioErrorCode.failed => network,
-    };
-  }
   if (error is PostgrestException) {
     return switch (error.code) {
       'PGRST301' || 'PGRST303' => relogin,
@@ -84,7 +68,6 @@ void logError(String context, Object error) {
     AuthException(:final code) => code,
     PostgrestException(:final code) => code,
     PolishException(:final code) => code,
-    AudioException(:final code) => code.name,
     _ => null,
   };
   debugPrint('$context: ${error.runtimeType}${code == null ? '' : ' ($code)'}');

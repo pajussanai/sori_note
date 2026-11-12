@@ -235,7 +235,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(fakes.memos.rows.single.content, '다듬은: 내일 오후 3시 치과 예약\n우유 사기');
-      expect(find.text('음성 기록을 메모로 저장했어요.'), findsOneWidget);
+      // 저장 성공 알림은 띄우지 않는다(화면을 가리지 않음).
+      expect(find.byType(SnackBar), findsNothing);
       expect(find.text('다듬은: 내일 오후 3시 치과 예약'), findsOneWidget);
     });
 

@@ -121,14 +121,18 @@ void main() {
       await waitForSave(tester);
       expect(fakes.memos.calls.last, 'create:첫 메모');
       expect(find.text('저장됨'), findsOneWidget);
+      // 저장 성공은 위쪽 '저장됨' 표시로만 알리고, 화면을 가리는 알림은 띄우지 않는다.
+      expect(find.byType(SnackBar), findsNothing);
 
       await tester.enterText(memoInput, '첫 메모\n둘째 줄');
       await waitForSave(tester);
       expect(fakes.memos.calls.last, 'update:m1:첫 메모\n둘째 줄');
+      expect(find.byType(SnackBar), findsNothing);
 
       await tester.tap(find.byKey(const Key('backButton')));
       await tester.pumpAndSettle();
       expect(find.text('첫 메모'), findsOneWidget, reason: '목록에 바로 보인다');
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('비어 있는 새 메모는 저장하지 않는다', (tester) async {
@@ -149,6 +153,7 @@ void main() {
       await tester.tap(find.byKey(const Key('backButton')));
       await tester.pumpAndSettle();
       expect(fakes.memos.calls, contains('update:a:원래 고침'));
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('저장에 실패하면 알려 주고 다시 시도할 수 있다', (tester) async {

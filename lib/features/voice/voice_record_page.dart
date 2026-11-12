@@ -129,7 +129,10 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
     setState(() => _saving = true);
     try {
       final Memo memo = await widget.store.saveMemo(null, content);
-      if (mounted) Navigator.of(context).pop(memo);
+      if (!mounted) return;
+      // 저장 후 돌아간 화면을 이전 안내(AI 다듬기 등)가 가리지 않게 지운다.
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.of(context).pop(memo);
     } catch (e) {
       logError('음성 기록 저장 실패', e);
       _snack('저장하지 못했어요. ${describeError(e)}');

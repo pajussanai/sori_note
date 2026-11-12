@@ -121,7 +121,8 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _openVoice() async {
     final services = widget.services;
-    final saved = await Navigator.of(context).push<Memo>(
+    // 저장에 성공하면 알림 없이 지금 화면을 그대로 둔다(저장 실패는 녹음 화면이 알린다).
+    await Navigator.of(context).push<Memo>(
       MaterialPageRoute(
         builder: (_) => VoiceRecordPage(
           store: _store,
@@ -130,18 +131,6 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
-    if (saved == null || !mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('음성 기록을 메모로 저장했어요.'),
-          action: SnackBarAction(
-            label: '열기',
-            onPressed: () => _openMemo(saved),
-          ),
-        ),
-      );
   }
 
   void _openSummary(DateTime? day) {

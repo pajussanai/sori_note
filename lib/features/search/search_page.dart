@@ -79,14 +79,15 @@ class _SearchPageState extends State<SearchPage> {
     final hasFilter =
         _query.text.trim().isNotEmpty || _category != null || _tag != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('검색')),
-      body: Center(
+      appBar: AppBar(titleSpacing: 20, title: const Text('검색')),
+      body: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
                 child: TextField(
                   key: const Key('searchInput'),
                   controller: _query,
@@ -115,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
                 height: 44,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
                     for (final c in MemoCategory.values)
                       Padding(
@@ -138,7 +139,7 @@ class _SearchPageState extends State<SearchPage> {
                   height: 44,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       for (final t in tags)
                         Padding(
@@ -165,15 +166,31 @@ class _SearchPageState extends State<SearchPage> {
                     : _hits.isEmpty && !_searching
                     ? const EmptyHint('검색 결과가 없어요.')
                     : ListView.separated(
-                        itemCount: _hits.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1, indent: 20, endIndent: 20),
-                        itemBuilder: (context, i) => MemoRow(
-                          memo: _hits[i].memo,
-                          store: store,
-                          preview: _hits[i].preview,
-                          onTap: () => widget.nav.openMemo(_hits[i].memo),
+                        padding: const EdgeInsets.fromLTRB(
+                          20,
+                          8,
+                          20,
+                          fabClearance,
                         ),
+                        itemCount: _hits.length + 1,
+                        separatorBuilder: (_, i) =>
+                            SizedBox(height: i == 0 ? 6 : 10),
+                        itemBuilder: (context, i) => i == 0
+                            ? Text(
+                                '검색 결과 ${_hits.length}개',
+                                key: const Key('searchCount'),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSub,
+                                ),
+                              )
+                            : MemoRow(
+                                memo: _hits[i - 1].memo,
+                                store: store,
+                                preview: _hits[i - 1].preview,
+                                onTap: () =>
+                                    widget.nav.openMemo(_hits[i - 1].memo),
+                              ),
                       ),
               ),
             ],

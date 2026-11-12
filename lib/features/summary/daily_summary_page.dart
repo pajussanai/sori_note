@@ -183,21 +183,28 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
         builder: (context, _) {
           final summary = _store.summaryOf(_day);
           final memos = _memos;
-          return Center(
+          return Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
-                  _DayBar(
-                    day: _day,
-                    today: _today,
-                    onPrev: () =>
-                        _moveTo(_day.subtract(const Duration(days: 1))),
-                    onNext: _day.isBefore(_today)
-                        ? () => _moveTo(_day.add(const Duration(days: 1)))
-                        : null,
-                    onPick: _pickDay,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: AppCard(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: _DayBar(
+                        day: _day,
+                        today: _today,
+                        onPrev: () =>
+                            _moveTo(_day.subtract(const Duration(days: 1))),
+                        onNext: _day.isBefore(_today)
+                            ? () => _moveTo(_day.add(const Duration(days: 1)))
+                            : null,
+                        onPick: _pickDay,
+                      ),
+                    ),
                   ),
                   if (_error != null)
                     EmptyHint('메모를 불러오지 못했어요. $_error')
@@ -213,12 +220,14 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
                       _summaryView(summary),
                     if (memos.isNotEmpty) ...[
                       SectionHeader('이 날의 메모 ${memos.length}개'),
-                      for (final m in memos)
-                        MemoRow(
-                          memo: m,
+                      Padding(
+                        padding: pagePadding,
+                        child: MemoList(
+                          memos: memos,
                           store: _store,
-                          onTap: () => widget.openMemo(m),
+                          onOpen: widget.openMemo,
                         ),
+                      ),
                     ],
                   ],
                 ],
@@ -318,34 +327,66 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
             ],
           ),
         ),
-        for (final s in SummarySection.values) ...[
-          SectionHeader(s.label),
-          if (_editing)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                key: Key('summaryField-${s.name}'),
-                controller: _editors[s],
-                maxLines: null,
-                minLines: 2,
-                decoration: appFieldDecoration(
-                  fillColor: AppColors.surface,
-                  hintText: '한 줄에 하나씩',
-                ),
+        for (final s in SummarySection.values)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: AppColors.mint,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        s.label,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_editing)
+                    TextField(
+                      key: Key('summaryField-${s.name}'),
+                      controller: _editors[s],
+                      maxLines: null,
+                      minLines: 2,
+                      decoration: appFieldDecoration(
+                        fillColor: AppColors.background,
+                        hintText: '한 줄에 하나씩',
+                      ),
+                    )
+                  else if (summary.items(s).isEmpty)
+                    const Text(
+                      '없음',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textMuted,
+                      ),
+                    )
+                  else
+                    for (final item in summary.items(s))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          '· $item',
+                          style: const TextStyle(fontSize: 15, height: 1.55),
+                        ),
+                      ),
+                ],
               ),
-            )
-          else if (summary.items(s).isEmpty)
-            const EmptyHint('없음')
-          else
-            for (final item in summary.items(s))
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 2, 20, 2),
-                child: Text(
-                  '· $item',
-                  style: const TextStyle(fontSize: 15, height: 1.55),
-                ),
-              ),
-        ],
+            ),
+          ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
           child: Text(

@@ -68,17 +68,7 @@ class _PolishSheetState extends State<PolishSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.track,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
+            // 손잡이는 테마(bottomSheetTheme.showDragHandle)가 그린다.
             const Row(
               children: [
                 Icon(Icons.auto_fix_high_rounded, color: AppColors.primary),

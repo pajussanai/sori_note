@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<title>소리노트 Sori Note</title>
+  <rect width="64" height="64" rx="14.7" fill="#356B65"/>
+  <g transform="translate(1.3 0.0) scale(1.0)">
+    <defs><clipPath id="page"><path d="M33.3 14.1 L44.2 14.1 L51.2 21.1 L51.2 46.1 A3.8 3.8 0 0 1 47.4 49.9 L33.3 49.9 A3.8 3.8 0 0 1 29.4 46.1 L29.4 17.9 A3.8 3.8 0 0 1 33.3 14.1 Z"/></clipPath></defs>
+    <path d="M33.3 14.1 L44.2 14.1 L51.2 21.1 L51.2 46.1 A3.8 3.8 0 0 1 47.4 49.9 L33.3 49.9 A3.8 3.8 0 0 1 29.4 46.1 L29.4 17.9 A3.8 3.8 0 0 1 33.3 14.1 Z" fill="#FFFFFF"/>
+    <path d="M44.2 14.1 L44.2 21.1 L51.2 21.1 Z" fill="#B8D5C9"/>
+    <g stroke="#B8D5C9" stroke-width="4.8" stroke-linecap="round">
+      <line x1="16.0" y1="27.4" x2="16.0" y2="36.6"/>
+      <line x1="22.7" y1="21.6" x2="22.7" y2="42.4"/>
+    </g>
+    <line x1="22.7" y1="32.0" x2="44.8" y2="32.0" stroke="#B8D5C9" stroke-width="3.8" stroke-linecap="round"/>
+    <line x1="22.7" y1="32.0" x2="44.8" y2="32.0" stroke="#548C83" stroke-width="3.8" stroke-linecap="round" clip-path="url(#page)"/>
+    <g stroke="#548C83" stroke-width="3.8" stroke-linecap="round">
+      <line x1="33.9" y1="40.6" x2="44.8" y2="40.6"/>
+    </g>
+  </g>
+</svg>

@@ -100,15 +100,9 @@ class _AuthPageState extends State<AuthPage> {
     final pendingEmail = _pendingEmail;
 
     return Scaffold(
-      body: DecoratedBox(
-        // 크림색에서 연한 핑크로 번지는 포근한 바탕
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.background, AppColors.primaryLight],
-          ),
-        ),
+      // 아이보리 단색 바탕 위 흰 카드(그라데이션 없음)
+      body: ColoredBox(
+        color: AppColors.background,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -118,8 +112,8 @@ class _AuthPageState extends State<AuthPage> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: softShadow,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.track),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),

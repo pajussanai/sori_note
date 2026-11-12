@@ -35,6 +35,7 @@ class _PlansPageState extends State<PlansPage> {
     final store = widget.store;
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 20,
         title: const Text('일정'),
         actions: [
           IconButton(
@@ -49,15 +50,21 @@ class _PlansPageState extends State<PlansPage> {
                   _ReminderSheet(store: store, notifier: widget.notifier),
             ),
           ),
+          // 오른쪽 아래는 음성 기록 버튼 자리이므로 추가는 위에 둔다.
+          Padding(
+            padding: const EdgeInsets.only(right: 12, left: 4),
+            child: FilledButton.icon(
+              key: const Key('addPlan'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                minimumSize: const Size(0, 40),
+              ),
+              onPressed: () => widget.nav.editPlan(null),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('추가'),
+            ),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('addPlan'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        onPressed: () => widget.nav.editPlan(null),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('추가'),
       ),
       body: ListenableBuilder(
         listenable: store,
@@ -66,13 +73,14 @@ class _PlansPageState extends State<PlansPage> {
           final upcoming = store.upcoming;
           final todos = store.todos;
           final done = store.completed;
-          return Center(
+          return Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                     child: SizedBox(
                       width: double.infinity,
                       child: SegmentedButton<_PlanTab>(
@@ -101,7 +109,12 @@ class _PlansPageState extends State<PlansPage> {
                   ),
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.only(bottom: 96),
+                      padding: const EdgeInsets.fromLTRB(
+                        20,
+                        0,
+                        20,
+                        fabClearance,
+                      ),
                       children: switch (_tab) {
                         _PlanTab.upcoming => _upcoming(overdue, upcoming),
                         _PlanTab.todos => _list(
@@ -121,38 +134,45 @@ class _PlansPageState extends State<PlansPage> {
     );
   }
 
-  Widget _row(PlanItem p) => PlanRow(
-    plan: p,
-    store: widget.store,
-    onTap: () => widget.nav.editPlan(p),
-  );
+  Widget _card(List<PlanItem> plans) =>
+      PlanCard(plans: plans, store: widget.store, onTap: widget.nav.editPlan);
 
-  List<Widget> _list(List<PlanItem> items, String empty) =>
-      items.isEmpty ? [EmptyHint(empty)] : [for (final p in items) _row(p)];
+  static const _groupPadding = EdgeInsets.fromLTRB(4, 18, 0, 8);
 
-  /// 지난 일정, 그다음 날짜별로 묶은 예정 일정
+  List<Widget> _list(List<PlanItem> items, String empty) => items.isEmpty
+      ? [EmptyHint(empty, padding: const EdgeInsets.symmetric(vertical: 12))]
+      : [const SizedBox(height: 8), _card(items)];
+
+  /// 지난 일정, 그다음 날짜별 카드로 묶은 예정 일정
   List<Widget> _upcoming(List<PlanItem> overdue, List<PlanItem> upcoming) {
     if (overdue.isEmpty && upcoming.isEmpty) {
       return const [
         EmptyHint(
           '예정된 일정이 없어요.\n메모 화면 위의 일정 버튼으로 메모에서 날짜·시간을 찾아 등록하거나, 추가를 눌러 직접 등록하세요.',
+          padding: EdgeInsets.symmetric(vertical: 12),
         ),
       ];
     }
     final today = seoulDay(widget.store.now);
     final widgets = <Widget>[];
     if (overdue.isNotEmpty) {
-      widgets.add(const SectionHeader('지난 일정(완료하지 않음)'));
-      widgets.addAll(overdue.map(_row));
+      widgets
+        ..add(const SectionHeader('지난 일정(완료하지 않음)', padding: _groupPadding))
+        ..add(_card(overdue));
     }
-    DateTime? current;
+    final byDay = <DateTime, List<PlanItem>>{};
     for (final p in upcoming) {
-      final day = p.seoulDate!;
-      if (day != current) {
-        current = day;
-        widgets.add(SectionHeader(relativeSeoulDate(day, today: today)));
-      }
-      widgets.add(_row(p));
+      (byDay[p.seoulDate!] ??= []).add(p);
+    }
+    for (final MapEntry(key: day, value: plans) in byDay.entries) {
+      widgets
+        ..add(
+          SectionHeader(
+            relativeSeoulDate(day, today: today),
+            padding: _groupPadding,
+          ),
+        )
+        ..add(_card(plans));
     }
     return widgets;
   }

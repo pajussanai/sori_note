@@ -90,15 +90,23 @@ Supabase 대시보드 → Edge Functions → Secrets에 `GEMINI_API_KEY`를 등�
   - PC·Android: Chrome, Edge에서 동작합니다(Chrome은 음성을 Google 서버로 보내 인식). Firefox는 지원하지 않습니다.
   - iPhone: Safari에서 동작합니다(iOS 설정의 '받아쓰기'가 켜져 있어야 함). 홈 화면에 추가한 앱 모드와 iPhone의 다른 브라우저에서는 iOS 버전에 따라 동작하지 않을 수 있습니다.
 
-## 앱 아이콘·로딩 화면
-로고('살아있는 노트': 노트 한 장에서 음파가 번져 나오는 모습)는
-[lib/widgets/app_logo.dart](lib/widgets/app_logo.dart)의 `SoriLogoPainter` 하나로 그립니다.
-앱 안 로고와 Android·iOS·PWA 아이콘, favicon, 로딩 화면 이미지를 모두 여기서 만듭니다.
+## 브랜드(로고·아이콘·컬러)
+- 심볼: 왼쪽의 음성 파형이 오른쪽 메모 문서로 이어지는 모양(평면 벡터, 딥 틸·민트)
+- 컬러: Primary Teal `#548C83`, Deep Teal `#356B65`(주요 버튼·선택 메뉴), Secondary Mint `#B8D5C9`(태그·상태),
+  Background Ivory `#F7F8F3`, Surface White `#FFFFFF`, Text Charcoal `#303A38`, Border `#E8ECE7`
+  ([lib/app/theme.dart](lib/app/theme.dart))
+- 에셋: [brand/svg](brand/svg)(심볼, 작은 심볼, 앱 아이콘, 한글·영문 워드마크), [brand/png](brand/png)(심볼 32~1024px,
+  앱 아이콘 512·1024px, favicon 16·32·48px, 워드마크)
+
+심볼은 [lib/widgets/app_logo.dart](lib/widgets/app_logo.dart)의 `LogoGeometry` 좌표 하나로 그립니다.
+앱 안 로고, Android·iOS·PWA 아이콘, favicon, 로딩 화면 이미지, SVG 원본을 모두 여기서 만듭니다.
 로고를 바꾼 뒤에는 다시 만듭니다.
 ```sh
-flutter test tool/generate_brand_icons_test.dart   # 아이콘 44개를 만든다
+flutter test tool/generate_brand_icons_test.dart   # 아이콘 PNG와 SVG를 만든다
 powershell -File tool/flatten_ios_icons.ps1        # iOS 아이콘의 투명도(알파) 제거
+powershell -File tool/make_wordmark_png.ps1        # 워드마크 PNG(맑은 고딕·Segoe UI)
 ```
+워드마크 SVG는 글꼴(Pretendard → Noto Sans KR → 시스템 글꼴)을 참조하므로, 인쇄물 등에 쓸 때는 글자를 윤곽선으로 바꿔 쓰세요.
 
 ## 테스트
 ```sh

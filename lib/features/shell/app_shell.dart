@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../core/seoul_time.dart';
 import '../../models/memo.dart';
 import '../../models/plan_item.dart';
+import '../../widgets/app_logo.dart';
 import '../../services/auth_service.dart';
 import '../home/home_page.dart';
 import '../memos/memo_editor_page.dart';
@@ -74,7 +75,7 @@ class _AppShellState extends State<AppShell> {
 
   static const _destinations = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
-    (Icons.notes_rounded, Icons.notes_rounded, '기록'),
+    (Icons.sticky_note_2_outlined, Icons.sticky_note_2_rounded, '기록'),
     (Icons.search_rounded, Icons.search_rounded, '검색'),
     (Icons.event_outlined, Icons.event_rounded, '일정'),
     (Icons.settings_outlined, Icons.settings_rounded, '설정'),
@@ -182,20 +183,51 @@ class _AppShellState extends State<AppShell> {
     _ => HomePage(store: _store, nav: _nav),
   };
 
+  void _select(int tab) => setState(() => _tab = tab);
+
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 840;
-    if (wide) {
+    final width = MediaQuery.sizeOf(context).width;
+    // PC(넓은 화면): 이름이 붙은 사이드바, 그 위에 음성 기록·새 메모 버튼
+    if (width >= 1100) {
+      return Scaffold(
+        body: SafeArea(
+          child: Row(
+            children: [
+              _Sidebar(
+                tab: _tab,
+                destinations: _destinations,
+                onSelect: _select,
+                onVoice: _openVoice,
+                onText: () => _openMemo(null),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: _page()),
+            ],
+          ),
+        ),
+      );
+    }
+    // 태블릿: 아이콘 레일, 맨 위에 음성 기록 버튼
+    if (width >= 600) {
       return Scaffold(
         body: SafeArea(
           child: Row(
             children: [
               NavigationRail(
                 selectedIndex: _tab,
-                onDestinationSelected: (i) => setState(() => _tab = i),
+                onDestinationSelected: _select,
                 labelType: NavigationRailLabelType.all,
-                backgroundColor: AppColors.background,
-                indicatorColor: AppColors.primaryLight,
+                leading: Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 16),
+                  child: FloatingActionButton(
+                    key: const Key('railVoice'),
+                    tooltip: '음성 기록',
+                    elevation: 0,
+                    onPressed: _openVoice,
+                    child: const Icon(Icons.mic_rounded),
+                  ),
+                ),
                 destinations: [
                   for (final (icon, selected, label) in _destinations)
                     NavigationRailDestination(
@@ -212,21 +244,135 @@ class _AppShellState extends State<AppShell> {
         ),
       );
     }
+    // 휴대폰: 아래 메뉴 + 오른쪽 아래 음성 기록 버튼(설정 탭에서는 숨김)
     return Scaffold(
       body: _page(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.primaryLight,
-        height: 64,
-        destinations: [
-          for (final (icon, selected, label) in _destinations)
-            NavigationDestination(
-              key: Key('tab-$label'),
-              icon: Icon(icon),
-              selectedIcon: Icon(selected),
-              label: label,
+      floatingActionButton: _tab == AppShell.settingsTab
+          ? null
+          : SizedBox.square(
+              dimension: 64,
+              child: FloatingActionButton(
+                key: const Key('voiceFab'),
+                tooltip: '음성 기록',
+                heroTag: 'voiceFab',
+                onPressed: _openVoice,
+                child: const Icon(Icons.mic_rounded, size: 30),
+              ),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.track)),
+        ),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: _select,
+          destinations: [
+            for (final (icon, selected, label) in _destinations)
+              NavigationDestination(
+                key: Key('tab-$label'),
+                icon: Icon(icon),
+                selectedIcon: Icon(selected),
+                label: label,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// PC 사이드바: 워드마크, 음성 기록(주요 액션)·새 메모, 메뉴
+class _Sidebar extends StatelessWidget {
+  const _Sidebar({
+    required this.tab,
+    required this.destinations,
+    required this.onSelect,
+    required this.onVoice,
+    required this.onText,
+  });
+
+  final int tab;
+  final List<(IconData, IconData, String)> destinations;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onVoice;
+  final VoidCallback onText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('sidebar'),
+      width: 248,
+      color: AppColors.surface,
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 24),
+            child: AppWordmark(logoSize: 34, fontSize: 21),
+          ),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              key: const Key('sidebarVoice'),
+              onPressed: onVoice,
+              icon: const Icon(Icons.mic_rounded),
+              label: const Text('음성 기록', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 46,
+            child: OutlinedButton.icon(
+              key: const Key('sidebarText'),
+              onPressed: onText,
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              label: const Text('새 메모'),
+            ),
+          ),
+          const SizedBox(height: 20),
+          for (var i = 0; i < destinations.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Material(
+                color: i == tab ? AppColors.primaryLight : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  key: Key('side-${destinations[i].$3}'),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => onSelect(i),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          i == tab ? destinations[i].$2 : destinations[i].$1,
+                          color: i == tab
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          destinations[i].$3,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: i == tab
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: i == tab
+                                ? AppColors.primary
+                                : AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
         ],
       ),

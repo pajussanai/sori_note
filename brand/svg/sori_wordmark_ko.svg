@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
+<title>소리노트</title>
+<g>
+  <rect width="160" height="160" rx="36.8" fill="#356B65"/>
+  <g transform="translate(3.2 0.0) scale(1.0)">
+    <defs><clipPath id="page"><path d="M83.2 35.2 L110.4 35.2 L128.0 52.8 L128.0 115.2 A9.6 9.6 0 0 1 118.4 124.8 L83.2 124.8 A9.6 9.6 0 0 1 73.6 115.2 L73.6 44.8 A9.6 9.6 0 0 1 83.2 35.2 Z"/></clipPath></defs>
+    <path d="M83.2 35.2 L110.4 35.2 L128.0 52.8 L128.0 115.2 A9.6 9.6 0 0 1 118.4 124.8 L83.2 124.8 A9.6 9.6 0 0 1 73.6 115.2 L73.6 44.8 A9.6 9.6 0 0 1 83.2 35.2 Z" fill="#FFFFFF"/>
+    <path d="M110.4 35.2 L110.4 52.8 L128.0 52.8 Z" fill="#B8D5C9"/>
+    <g stroke="#B8D5C9" stroke-width="9.0" stroke-linecap="round">
+      <line x1="32.8" y1="70.9" x2="32.8" y2="89.1"/>
+      <line x1="46.4" y1="55.7" x2="46.4" y2="104.3"/>
+      <line x1="60.0" y1="65.3" x2="60.0" y2="94.7"/>
+    </g>
+    <line x1="60.0" y1="80.0" x2="112.0" y2="80.0" stroke="#B8D5C9" stroke-width="7.0" stroke-linecap="round"/>
+    <line x1="60.0" y1="80.0" x2="112.0" y2="80.0" stroke="#548C83" stroke-width="7.0" stroke-linecap="round" clip-path="url(#page)"/>
+    <g stroke="#548C83" stroke-width="7.0" stroke-linecap="round">
+      <line x1="84.8" y1="61.6" x2="105.6" y2="61.6"/>
+      <line x1="84.8" y1="98.4" x2="115.2" y2="98.4"/>
+    </g>
+  </g>
+</g>
+<text x="196" y="80.0" dominant-baseline="central" font-family="Pretendard, 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="96.0" font-weight="800" letter-spacing="-1" fill="#303A38">소리노트</text>
+</svg>

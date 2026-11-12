@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
 
-/// 소리노트 로고: 노트 한 장에서 빛나는 음파가 번져 나오는 모습('살아있는 노트').
+/// 소리노트 심볼: 왼쪽의 음성 파형이 오른쪽 메모 문서로 이어지는 모양(평면 벡터).
 ///
-/// 앱 아이콘(Android·iOS·PWA·favicon)과 로딩 화면 이미지는 모두
-/// [SoriLogoPainter]로 만든다(tool/generate_brand_icons_test.dart).
+/// 앱 안 로고, 앱 아이콘(Android·iOS·PWA·favicon), 로딩 화면 이미지, SVG 원본은 모두
+/// [LogoGeometry]의 같은 좌표로 그린다(tool/generate_brand_icons_test.dart).
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 40});
 
@@ -13,15 +13,56 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * SoriLogoPainter.cornerRatio),
-        boxShadow: softShadow,
-      ),
-      child: CustomPaint(
-        size: Size.square(size),
-        painter: SoriLogoPainter(simple: size < SoriLogoPainter.simpleBelow),
-      ),
+    return CustomPaint(
+      size: Size.square(size),
+      painter: SoriLogoPainter(simple: size < SoriLogoPainter.simpleBelow),
+    );
+  }
+}
+
+/// 심볼 + 한글 워드마크(필요하면 영문 함께)
+class AppWordmark extends StatelessWidget {
+  const AppWordmark({
+    super.key,
+    this.logoSize = 32,
+    this.fontSize = 20,
+    this.english = false,
+  });
+
+  final double logoSize;
+  final double fontSize;
+
+  /// 'Sori Note'를 함께 보여 준다.
+  final bool english;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppLogo(size: logoSize),
+        SizedBox(width: logoSize * 0.3),
+        Text(
+          '소리노트',
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: AppColors.textMain,
+          ),
+        ),
+        if (english) ...[
+          const SizedBox(width: 6),
+          Text(
+            'Sori Note',
+            style: TextStyle(
+              fontSize: fontSize * 0.62,
+              fontWeight: FontWeight.w600,
+              color: AppColors.teal,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -34,11 +75,48 @@ enum LogoBackground {
   /// 꽉 찬 사각형(iOS 아이콘, maskable 아이콘처럼 OS가 모양을 잘라 내는 곳)
   square,
 
-  /// 바탕 없음(Android 적응형 아이콘 전경, 로딩 화면 그림)
+  /// 바탕 없음(Android 적응형 아이콘 전경)
   none,
 }
 
-/// 로고 그리기. 모든 좌표는 한 변을 1로 본 비율이다.
+/// 심볼 좌표. 한 변을 1로 본 비율이며 그림과 SVG가 함께 쓴다.
+abstract final class LogoGeometry {
+  /// 둥근 사각형 바탕의 모서리 비율
+  static const cornerRatio = 0.23;
+
+  static const background = AppColors.primary; // 딥 틸
+  static const wave = AppColors.mint; // 민트 파형
+  static const paper = Color(0xFFFFFFFF);
+  static const fold = AppColors.mint;
+  static const ink = AppColors.teal; // 문서 안 글줄
+
+  /// 문서(세로로 긴 메모지, 오른쪽 위를 접음)
+  static const pageLeft = 0.46, pageTop = 0.22, pageRight = 0.80;
+  static const pageBottom = 0.78, pageRadius = 0.06, pageFold = 0.11;
+
+  /// 파형의 가운데 높이(문서 안 첫 글줄과 같은 높이로 이어진다)
+  static const midY = 0.50;
+
+  /// 파형 막대 (x, 길이). 작은 크기에서는 2개만 쓴다.
+  static const bars = [(0.205, 0.17), (0.29, 0.36), (0.375, 0.24)];
+  static const barsSimple = [(0.25, 0.22), (0.355, 0.40)];
+  static const barWidth = 0.056;
+  static const barWidthSimple = 0.075;
+
+  /// 파형에서 문서로 이어지는 선(가운데 글줄): 문서 밖은 민트, 안은 틸
+  static const flowStart = 0.375, flowEnd = 0.70;
+
+  /// 문서 안 나머지 글줄 (y, 시작 x, 끝 x)
+  static const lines = [(0.385, 0.53, 0.66), (0.615, 0.53, 0.72)];
+  static const linesSimple = [(0.635, 0.53, 0.70)];
+  static const lineWidth = 0.044;
+  static const lineWidthSimple = 0.06;
+
+  /// 그림 전체가 가운데에 오도록 옮기는 양
+  static const shiftX = 0.02;
+}
+
+/// 로고 그리기.
 class SoriLogoPainter extends CustomPainter {
   const SoriLogoPainter({
     this.background = LogoBackground.rounded,
@@ -50,10 +128,10 @@ class SoriLogoPainter extends CustomPainter {
 
   final LogoBackground background;
 
-  /// 그림(노트·음파)의 크기. 안전 영역 안에 넣을 때 줄인다.
+  /// 그림(파형·문서)의 크기. 안전 영역 안에 넣을 때 줄인다.
   final double scale;
 
-  /// 작은 크기(favicon 등)에서는 음파 수를 줄이고 선을 굵게 한다.
+  /// 작은 크기(favicon 등)에서는 파형·글줄을 줄이고 선을 굵게 한다.
   final bool simple;
 
   /// Android 적응형 아이콘처럼 바탕과 그림을 따로 그릴 때 쓴다.
@@ -61,23 +139,9 @@ class SoriLogoPainter extends CustomPainter {
   final bool paintForeground;
 
   /// 이 크기(논리 픽셀)보다 작으면 [simple]로 그린다.
-  static const simpleBelow = 64.0;
+  static const simpleBelow = 40.0;
 
-  /// 둥근 사각형 바탕의 모서리 비율
-  static const cornerRatio = 0.23;
-
-  static const _tealLight = Color(0xFF3A8A8F);
-  static const _tealDark = Color(0xFF245B5F);
-  static const _paper = Color(0xFFFBF9F4);
-  static const _paperFold = Color(0xFFDCD6C8);
-  static const _glow = Color(0xFFCFEDE9);
-
-  // 노트 한 장(세로로 긴 종이, 오른쪽 위 모서리를 접음)
-  static const _pageLeft = 0.17, _pageTop = 0.19, _pageRight = 0.57;
-  static const _pageBottom = 0.81, _pageRadius = 0.055, _fold = 0.1;
-
-  /// 노트 가운데. 안의 소리 막대와 밖으로 번지는 음파가 여기를 중심으로 한다.
-  static const _center = Offset(0.37, 0.5);
+  static const cornerRatio = LogoGeometry.cornerRatio;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -85,40 +149,30 @@ class SoriLogoPainter extends CustomPainter {
     canvas.save();
     canvas.scale(s);
     if (paintBackground && background != LogoBackground.none) {
-      _paintBackground(canvas);
+      final paint = Paint()..color = LogoGeometry.background;
+      const rect = Rect.fromLTWH(0, 0, 1, 1);
+      if (background == LogoBackground.rounded) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(cornerRatio)),
+          paint,
+        );
+      } else {
+        canvas.drawRect(rect, paint);
+      }
     }
     if (paintForeground) {
       canvas.translate(0.5, 0.5);
       canvas.scale(scale);
-      // 노트와 오른쪽 음파를 합친 그림이 가운데에 오도록 옮긴다.
-      canvas.translate(-0.5 + 0.025, -0.5);
-      _paintNote(canvas);
+      canvas.translate(-0.5 + LogoGeometry.shiftX, -0.5);
+      _paintSymbol(canvas);
     }
     canvas.restore();
   }
 
-  void _paintBackground(Canvas canvas) {
-    const rect = Rect.fromLTWH(0, 0, 1, 1);
-    final paint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [_tealLight, AppColors.primary, _tealDark],
-        stops: [0, 0.55, 1],
-      ).createShader(rect);
-    if (background == LogoBackground.rounded) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(cornerRatio)),
-        paint,
-      );
-    } else {
-      canvas.drawRect(rect, paint);
-    }
-  }
-
-  Path _pagePath() {
-    const l = _pageLeft, t = _pageTop, r = _pageRight, b = _pageBottom;
-    const k = _pageRadius, f = _fold;
+  static Path pagePath() {
+    const l = LogoGeometry.pageLeft, t = LogoGeometry.pageTop;
+    const r = LogoGeometry.pageRight, b = LogoGeometry.pageBottom;
+    const k = LogoGeometry.pageRadius, f = LogoGeometry.pageFold;
     return Path()
       ..moveTo(l + k, t)
       ..lineTo(r - f, t)
@@ -132,74 +186,69 @@ class SoriLogoPainter extends CustomPainter {
       ..close();
   }
 
-  void _paintNote(Canvas canvas) {
-    final page = _pagePath();
+  static Path foldPath() {
+    const r = LogoGeometry.pageRight, t = LogoGeometry.pageTop;
+    const f = LogoGeometry.pageFold;
+    return Path()
+      ..moveTo(r - f, t)
+      ..lineTo(r - f, t + f)
+      ..lineTo(r, t + f)
+      ..close();
+  }
 
-    // 종이 그림자
-    canvas.drawPath(
-      page.shift(const Offset(0, 0.018)),
-      Paint()
-        ..color = const Color(0x33000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.02),
-    );
-    canvas.drawPath(page, Paint()..color = _paper);
-
-    // 접힌 모서리
-    const r = _pageRight, t = _pageTop, f = _fold;
-    canvas.drawPath(
-      Path()
-        ..moveTo(r - f, t)
-        ..lineTo(r - f, t + f * 0.82)
-        ..quadraticBezierTo(r - f, t + f, r - f * 0.82, t + f)
-        ..lineTo(r, t + f)
-        ..close(),
-      Paint()..color = _paperFold,
-    );
-
-    Paint line(Color color, double width) => Paint()
+  void _paintSymbol(Canvas canvas) {
+    Paint stroke(Color color, double width) => Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = width
       ..strokeCap = StrokeCap.round;
 
-    // 노트 안: 소리 막대(예전 소리노트 표시 graphic_eq와 같은 비율)
-    final barWidth = simple ? 0.05 : 0.034;
-    final bars = simple
-        ? const [(-0.07, 0.16), (0.0, 0.32), (0.07, 0.16)]
-        : const [
-            (-0.1, 0.07),
-            (-0.05, 0.19),
-            (0.0, 0.31),
-            (0.05, 0.19),
-            (0.1, 0.07),
-          ];
-    final barPaint = line(AppColors.primary, barWidth);
-    for (final (dx, height) in bars) {
-      final x = _center.dx + dx;
-      final half = height / 2 - barWidth / 2;
+    final page = pagePath();
+    canvas.drawPath(page, Paint()..color = LogoGeometry.paper);
+    canvas.drawPath(foldPath(), Paint()..color = LogoGeometry.fold);
+
+    // 파형
+    final barWidth = simple
+        ? LogoGeometry.barWidthSimple
+        : LogoGeometry.barWidth;
+    final wave = stroke(LogoGeometry.wave, barWidth);
+    for (final (x, length)
+        in simple ? LogoGeometry.barsSimple : LogoGeometry.bars) {
+      final half = length / 2 - barWidth / 2;
       canvas.drawLine(
-        Offset(x, _center.dy - half),
-        Offset(x, _center.dy + half),
-        barPaint,
+        Offset(x, LogoGeometry.midY - half),
+        Offset(x, LogoGeometry.midY + half),
+        wave,
       );
     }
 
-    // 노트 밖: 오른쪽으로 번지는 음파. 번짐을 먼저 깔아 은은하게 빛나 보이게 한다.
-    final waveWidth = simple ? 0.05 : 0.034;
-    final waves = simple
-        ? const [(0.3, 0.66)]
-        : const [(0.29, 0.68), (0.39, 0.6)];
-    for (final (radius, sweep) in waves) {
-      final rect = Rect.fromCircle(center: _center, radius: radius);
-      canvas.drawArc(
-        rect,
-        -sweep,
-        sweep * 2,
-        false,
-        line(_glow.withValues(alpha: 0.38), waveWidth * 2.2)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, waveWidth * 0.8),
-      );
-      canvas.drawArc(rect, -sweep, sweep * 2, false, line(_glow, waveWidth));
+    // 파형에서 문서로 이어지는 가운데 선: 문서 밖은 민트, 안은 틸
+    final lineWidth = simple
+        ? LogoGeometry.lineWidthSimple
+        : LogoGeometry.lineWidth;
+    final start = simple
+        ? LogoGeometry.barsSimple.last.$1
+        : LogoGeometry.flowStart;
+    const a = Offset(0, LogoGeometry.midY);
+    canvas.drawLine(
+      a.translate(start, 0),
+      a.translate(LogoGeometry.flowEnd, 0),
+      stroke(LogoGeometry.wave, lineWidth),
+    );
+    canvas.save();
+    canvas.clipPath(page);
+    canvas.drawLine(
+      a.translate(start, 0),
+      a.translate(LogoGeometry.flowEnd, 0),
+      stroke(LogoGeometry.ink, lineWidth),
+    );
+    canvas.restore();
+
+    // 나머지 글줄
+    final ink = stroke(LogoGeometry.ink, lineWidth);
+    for (final (y, x1, x2)
+        in simple ? LogoGeometry.linesSimple : LogoGeometry.lines) {
+      canvas.drawLine(Offset(x1, y), Offset(x2, y), ink);
     }
   }
 

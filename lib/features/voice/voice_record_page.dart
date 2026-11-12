@@ -207,8 +207,16 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                 children: [
                   _StatusBar(session: _session),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(cardRadius),
+                        border: Border.all(
+                          color: _editing ? AppColors.mint : AppColors.track,
+                        ),
+                      ),
                       child: _editing
                           ? TextField(
                               key: const Key('voiceText'),
@@ -254,7 +262,8 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   }
 }
 
-/// 녹음 시간과 상태 안내
+/// 녹음 상태 표시: 녹음 중(빨강)·일시정지(호박색)·완료(딥 틸)·직접 입력(회색).
+/// 듣는 동안에는 큰 원과 시간을, 글을 고치는 단계에서는 한 줄로 줄여 보여 준다.
 class _StatusBar extends StatelessWidget {
   const _StatusBar({required this.session});
 
@@ -264,60 +273,111 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = session.state;
     final message = session.message;
-    final (label, color) = switch (state) {
-      VoiceState.ready => ('녹음 준비', AppColors.textSub),
-      VoiceState.starting => ('마이크 준비 중', AppColors.textSub),
-      VoiceState.listening => (
-        '듣는 중 · 말하는 내용을 글자로 바꾸고 있어요',
-        AppColors.recording,
+    final (label, color, icon) = switch (state) {
+      VoiceState.ready => ('녹음 준비', AppColors.primary, Icons.mic_none_rounded),
+      VoiceState.starting => (
+        '마이크 준비 중',
+        AppColors.teal,
+        Icons.mic_none_rounded,
       ),
-      VoiceState.paused => ('일시정지', AppColors.textSub),
-      VoiceState.finished => ('변환 완료', AppColors.primary),
-      VoiceState.failed => ('직접 입력', AppColors.danger),
+      VoiceState.listening => (
+        '녹음 중 · 말하는 내용을 글자로 바꾸고 있어요',
+        AppColors.recording,
+        Icons.mic_rounded,
+      ),
+      VoiceState.paused => ('일시정지', AppColors.paused, Icons.pause_rounded),
+      VoiceState.finished => ('변환 완료', AppColors.primary, Icons.check_rounded),
+      VoiceState.failed => ('직접 입력', AppColors.textSub, Icons.keyboard_rounded),
     };
     final elapsed = session.elapsed;
     final time =
         '${elapsed.inMinutes.toString().padLeft(2, '0')}:'
         '${elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final big = state != VoiceState.finished && state != VoiceState.failed;
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              if (state == VoiceState.listening)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: Icon(
-                    Icons.fiber_manual_record_rounded,
-                    size: 14,
-                    color: AppColors.recording,
-                  ),
-                ),
-              Text(
-                time,
-                key: const Key('voiceTime'),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
+          Icon(Icons.circle, size: 8, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              key: const Key('voiceState'),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  key: const Key('voiceState'),
-                  style: TextStyle(fontSize: 13, color: color),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+    final timeText = Text(
+      time,
+      key: const Key('voiceTime'),
+      style: TextStyle(
+        fontSize: big ? 34 : 20,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textMain,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, big ? 12 : 4, 20, 8),
+      child: Column(
+        crossAxisAlignment: big
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.start,
+        children: [
+          if (big) ...[
+            Container(
+              width: 104,
+              height: 104,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: color.withValues(alpha: 0.35),
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: CircleAvatar(
+                  radius: 34,
+                  backgroundColor: color,
+                  child: Icon(icon, size: 34, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            timeText,
+            const SizedBox(height: 8),
+            pill,
+          ] else
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: color,
+                  child: Icon(icon, size: 18, color: Colors.white),
+                ),
+                const SizedBox(width: 10),
+                timeText,
+                const SizedBox(width: 10),
+                Flexible(child: pill),
+              ],
+            ),
           if (message != null)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: 8),
               child: Text(
                 message,
                 key: const Key('voiceMessage'),

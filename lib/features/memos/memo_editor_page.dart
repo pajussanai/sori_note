@@ -9,6 +9,7 @@ import '../../core/seoul_time.dart';
 import '../../models/memo.dart';
 import '../../services/polish_service.dart';
 import '../../services/speech_input.dart';
+import '../../widgets/list_rows.dart';
 import 'dictation.dart';
 import 'label_sheet.dart';
 import 'organize_sheet.dart';
@@ -458,47 +459,44 @@ class _MetaRow extends StatelessWidget {
     final label = memo == null ? null : store.labelOf(memo.id);
     const muted = TextStyle(fontSize: 12.5, color: AppColors.textSub);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 12, 4),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              memo == null
-                  ? '새 메모'
-                  : '${relativeSeoulDate(seoulDay(memo.createdAt))} ${formatSeoulClock(memo.createdAt)} 작성',
-              style: muted,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Text(
+            memo == null
+                ? '새 메모'
+                : '${relativeSeoulDate(seoulDay(memo.createdAt))} ${formatSeoulClock(memo.createdAt)} 작성',
+            style: muted,
+            overflow: TextOverflow.ellipsis,
           ),
-          if (label != null)
-            Flexible(
-              flex: 2,
-              child: InkWell(
-                key: const Key('labelChip'),
-                borderRadius: BorderRadius.circular(8),
-                onTap: onEdit,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    [
-                      label.category.label,
-                      for (final t in label.tags.take(3)) '#$t',
-                    ].join('  '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+          if (label != null) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              key: const Key('labelChip'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: onEdit,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: LabelLine(
+                        category: label.category.label,
+                        tags: label.tags.take(4).toList(),
+                      ),
                     ),
-                  ),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: AppColors.textMuted,
+                      semanticLabel: '분류·태그 고치기',
+                    ),
+                  ],
                 ),
               ),
             ),
+          ],
         ],
       ),
     );

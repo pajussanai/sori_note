@@ -201,7 +201,7 @@ void main() {
       await tester.tap(find.byKey(const Key('newVoiceMemo')));
       await tester.pumpAndSettle();
       expect(fakes.speech.isListening, isTrue);
-      expect(find.textContaining('듣는 중'), findsOneWidget);
+      expect(find.textContaining('녹음 중'), findsOneWidget);
 
       fakes.speech.hear('내일 오후 3시 치과 예약');
       await tester.pump();
@@ -468,10 +468,47 @@ void main() {
     });
   });
 
-  testWidgets('넓은 화면(PC)에서는 왼쪽 메뉴를 보여 준다', (tester) async {
-    await pumpApp(tester, size: const Size(1200, 800));
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+  group('화면 크기별 메뉴', () {
+    testWidgets('휴대폰: 아래 메뉴와 오른쪽 아래 음성 기록 버튼(설정에서는 숨김)', (tester) async {
+      final fakes = await pumpApp(tester, size: const Size(390, 844));
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byKey(const Key('voiceFab')), findsOneWidget);
+      await goTab(tester, '기록');
+      expect(find.byKey(const Key('voiceFab')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('voiceFab')));
+      await tester.pumpAndSettle();
+      expect(fakes.speech.isListening, isTrue);
+      await tester.tap(find.byKey(const Key('voiceBack')));
+      await tester.pumpAndSettle();
+      await goTab(tester, '설정');
+      expect(find.byKey(const Key('voiceFab')), findsNothing);
+    });
+
+    testWidgets('태블릿: 왼쪽 아이콘 메뉴와 음성 기록 버튼', (tester) async {
+      await pumpApp(tester, size: const Size(800, 1100));
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byKey(const Key('railVoice')), findsOneWidget);
+    });
+
+    testWidgets('PC: 이름이 붙은 사이드바와 음성 기록·새 메모 버튼', (tester) async {
+      final fakes = await pumpApp(tester, size: const Size(1280, 800));
+      expect(find.byKey(const Key('sidebar')), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+      await tester.tap(find.byKey(const Key('side-일정')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('addPlan')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('sidebarText')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('memoInput')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('backButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('sidebarVoice')));
+      await tester.pumpAndSettle();
+      expect(fakes.speech.isListening, isTrue);
+      await tester.tap(find.byKey(const Key('voiceStop')));
+      await tester.pumpAndSettle();
+    });
   });
 }
 

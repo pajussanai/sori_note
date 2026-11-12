@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../app/note_store.dart';
-import '../../app/theme.dart';
 import '../../models/memo_label.dart';
 import '../../widgets/list_rows.dart';
 import '../../widgets/status_view.dart';
 import '../shell/app_shell.dart';
 
 /// 기록: 전체 메모와 분류별 보기. 최근 100개씩 불러온다.
+/// 음성 기록은 오른쪽 아래 버튼, 텍스트 메모는 오른쪽 위 버튼으로 시작한다.
 class RecordsPage extends StatefulWidget {
   const RecordsPage({super.key, required this.store, required this.nav});
 
@@ -25,30 +25,17 @@ class _RecordsPageState extends State<RecordsPage> {
   Widget build(BuildContext context) {
     final store = widget.store;
     return Scaffold(
-      appBar: AppBar(title: const Text('기록')),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            key: const Key('newTextMemo'),
-            heroTag: 'text',
-            tooltip: '텍스트 메모',
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.primary,
+      appBar: AppBar(
+        titleSpacing: 20,
+        title: const Text('기록'),
+        actions: [
+          IconButton(
+            key: const Key('recordsNewMemo'),
+            tooltip: '새 텍스트 메모',
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () => widget.nav.openMemo(null),
-            child: const Icon(Icons.edit_rounded),
           ),
-          const SizedBox(width: 10),
-          FloatingActionButton.extended(
-            key: const Key('newVoiceMemo'),
-            heroTag: 'voice',
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            onPressed: widget.nav.openVoice,
-            icon: const Icon(Icons.mic_rounded),
-            label: const Text('음성 기록'),
-          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListenableBuilder(
@@ -68,7 +55,8 @@ class _RecordsPageState extends State<RecordsPage> {
           }
           final counts = store.categoryCounts;
           final memos = store.memosIn(_category);
-          return Center(
+          return Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: CustomScrollView(
@@ -76,7 +64,7 @@ class _RecordsPageState extends State<RecordsPage> {
                   SliverToBoxAdapter(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                       child: Row(
                         children: [
                           ChoiceChip(
@@ -105,29 +93,35 @@ class _RecordsPageState extends State<RecordsPage> {
                     SliverToBoxAdapter(
                       child: EmptyHint(
                         store.memos.isEmpty
-                            ? '아직 메모가 없어요. 아래 \'음성 기록\'으로 시작해 보세요.'
+                            ? '아직 메모가 없어요. 오른쪽 아래 마이크 버튼으로 음성 기록을 시작해 보세요.'
                             : '이 분류의 메모가 없어요.',
                       ),
                     ),
-                  SliverList.separated(
-                    itemCount: memos.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 20, endIndent: 20),
-                    itemBuilder: (context, i) => MemoRow(
-                      memo: memos[i],
-                      store: store,
-                      onTap: () => widget.nav.openMemo(memos[i]),
+                  SliverPadding(
+                    padding: pagePadding,
+                    sliver: SliverList.separated(
+                      itemCount: memos.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, i) => MemoRow(
+                        memo: memos[i],
+                        store: store,
+                        onTap: () => widget.nav.openMemo(memos[i]),
+                      ),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      // 아래 버튼에 마지막 메모가 가려지지 않게 여백을 둔다.
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        12,
+                        16,
+                        fabClearance,
+                      ),
                       child: store.hasMore
                           ? Center(
                               child: store.loadingMore
                                   ? const CircularProgressIndicator()
-                                  : TextButton(
+                                  : OutlinedButton(
                                       key: const Key('loadMore'),
                                       onPressed: store.loadMore,
                                       child: const Text('이전 메모 더 보기'),
